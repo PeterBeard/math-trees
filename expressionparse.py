@@ -280,7 +280,17 @@ class Exponent(Operation):
 	# Evaluate the node
 	def evaluate(self):
 		if self.left and self.right:
-			return self.left.evaluate() ** self.right.evaluate()
+			lvalue = self.left.evaluate()
+			rvalue = self.right.evaluate()
+			# Exponents are dumb and mean when negative numbers are involved
+			if lvalue < 0:
+				if rvalue == int(rvalue):
+					return lvalue ** rvalue
+				else:
+					# The answer will be complex
+					return (lvalue + 0j) ** rvalue
+			else:
+				return lvalue ** rvalue
 		else:
 			raise NodeException('Node does not have enough children.')
 	# Return a string representation of the operation

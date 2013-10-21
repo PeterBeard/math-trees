@@ -1,5 +1,6 @@
 import expressionparse
 import unittest
+import cmath
 
 # Tests for the addition operator
 class TestAddition(unittest.TestCase):
@@ -186,9 +187,9 @@ class TestExponentiation(unittest.TestCase):
 		self.tree.parse('-1.5^-1.0')
 		self.assertEqual(self.tree.evaluate(), -1.0/1.5)
 	# Test square root of a negative number
-	#def test_complex(self):
-	#	self.tree.parse('-4^0.5')
-	#	self.assertEqual(self.tree.evaluate(), cmath.sqrt(-4))
+	def test_complex(self):
+		self.tree.parse('-4^0.5')
+		self.assertAlmostEqual(self.tree.evaluate(), cmath.sqrt(-4))
 
 # Tests for parentheses
 class TestParentheses(unittest.TestCase):
