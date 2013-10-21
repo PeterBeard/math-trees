@@ -24,6 +24,11 @@ class Tree(object):
 	# Get the length of the tree
 	def __len__(self):
 		return len(self.root)
+	# Check if two trees are equal
+	def __eq__(self, other):
+		if isinstance(other, Tree):
+			return self.root == other.root
+		return False
 	# Parse a string expression
 	def parse(self, expression):
 		operations = ['+','-','*','/','^']
@@ -45,7 +50,9 @@ class Tree(object):
 		level = 0
 		start_index = 0
 		end_index = 0
-		# First, replace adjacent parentheses with explicit multiplications so we can parse more easily
+		# First, strip out whitespace from the expression
+		expression = expression.replace(' ','')
+		# Next replace adjacent parentheses with explicit multiplications so we can parse more easily
 		expression = expression.replace(')(',')*(')
 		# Break the expression up into its subexpressions, recursively parsing them as we go
 		for i in range(0,len(expression)):
@@ -67,12 +74,15 @@ class Tree(object):
 			if level == 0 and start_index != end_index:
 				subtree = Tree()
 				subtree.parse(expression[start_index:end_index])
-				subexpressions.append(subtree)
+				subexpressions.append(subtree.root)
 				start_index = end_index
+		# Were there any unmatched parentheses?
+		if level != 0:
+			raise ParseException('Unmatched parentheses.')
 		# Parse the top-level expression
 		for char in subexpressions:
 			# Invalid character
-			if char not in operations and char not in digits and type(char).__name__ != 'Tree' and type(char).__name__ != 'Variable':
+			if char not in operations and char not in digits and type(char).__name__ not in ['Node', 'Variable', 'Plus', 'Minus', 'Times', 'Divided', 'Exponent', 'Value']:
 				raise ParseException('Invalid character')
 			# Add the digit to the current value
 			if char in digits or (char in operations and len(curr_value) == 0):
@@ -146,6 +156,11 @@ class Value(Node):
 	# The length of the value
 	def __len__(self):
 		return len(self.value)
+	# See if two values are equal
+	def __eq__(self, other):
+		if isinstance(other, Value):
+			return self.value == other.value
+		return False
 	# Return a string representation of the value
 	def __str__(self):
 		return self.value
@@ -189,6 +204,11 @@ class Operation(Node):
 		else:
 			raise NodeException('Node has no children to remove.')
 		return node
+	# See if two operation nodes are equal
+	def __eq__(self, other):
+		if type(other) == type(self):
+			return (self.left == other.left) and (self.right == other.right)
+		return False
 	# Return the length of the node
 	def __len__(self):
 		return len(self.left) + len(self.right)
