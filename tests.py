@@ -214,6 +214,54 @@ class TestParentheses(unittest.TestCase):
 		u.parse('(2*4)+5')
 
 		self.assertEqual(self.tree, u)
+	# Test for addition on the left
+	def test_add_left(self):
+		self.tree.parse('1+(2*2)')
+		self.assertEqual(self.tree.evaluate(), 5)
+	# Test for addition on the right
+	def test_add_right(self):
+		self.tree.parse('(2*2)+1')
+		self.assertEqual(self.tree.evaluate(), 5)
+	# Test for subtraction on the left
+	def test_sub_left(self):
+		self.tree.parse('1-(2*2)')
+		self.assertEqual(self.tree.evaluate(), -3)
+	# Test for subtraction on the right
+	def test_sub_right(self):
+		self.tree.parse('(2*2)-1')
+		self.assertEqual(self.tree.evaluate(), 3)
+	# Test for multiplication on the left
+	def test_mul_left(self):
+		self.tree.parse('2*(2*2)')
+		self.assertEqual(self.tree.evaluate(), 8)
+	# Test for multiplication on the right
+	def test_mul_right(self):
+		self.tree.parse('(2*2)*2')
+		self.assertEqual(self.tree.evaluate(), 8)
+	# Test for division on the left
+	def test_div_left(self):
+		self.tree.parse('2/(2*2)')
+		self.assertEqual(self.tree.evaluate(), 0.5)
+	# Test for division on the right
+	def test_div_right(self):
+		self.tree.parse('(2*2)/2')
+		self.assertEqual(self.tree.evaluate(), 2)
+	# Test for implied multiplication of parenthetical expressions
+	def test_implied_mul(self):
+		self.tree.parse('(1+1)(1+1)')
+		self.assertEqual(self.tree.evaluate(), 4)
+	# Test for multiple parenthetical expressions
+	def test_multi_parens(self):
+		self.tree.parse('(1+2)*3-(3+4)*5')
+		self.assertEqual(self.tree.evaluate(), -26)
+	# Test for deeply-nested parenthetical expressions (5 levels)
+	def test_nested_parens(self):
+		self.tree.parse('2*(1+(3/(1-(2*(6-5)))))')
+		self.assertEqual(self.tree.evaluate(), -4)
+	# Test for multiple sets of nested parentheses
+	def test_multi_nested_parens(self):
+		self.tree.parse('1/(1+(3*(2-3)))+3*(4-(1/(1+2)))')
+		self.assertEqual(self.tree.evaluate(), 10.5)
 
 # Test value substitution for variables
 class TestSubstitution(unittest.TestCase):
