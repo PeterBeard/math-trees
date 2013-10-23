@@ -342,7 +342,11 @@ class Times(Operation):
 			raise NodeException('Node does not have enough children.')
 	# Return a string representation of the operation
 	def __str__(self):
-		return '[ ' + self.left.__str__() + ' * ' + self.right.__str__() + ' ]'
+		# Multiplication of variables is usually written with the variables adjacent to each other
+		if type(self.left).__name__ == 'Variable' and type(self.right).__name__ == 'Variable':
+			return '[ ' + self.left.name + self.right.name + ' ]'
+		else:
+			return '[ ' + self.left.__str__() + ' * ' + self.right.__str__() + ' ]'
 
 # Divide two nodes
 class Divide(Operation):
