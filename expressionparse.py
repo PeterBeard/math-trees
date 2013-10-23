@@ -125,13 +125,22 @@ class Tree(object):
 				curr_value = char
 		# Add the last value to the tree
 		curr_op.addChild(curr_value)
+	# Set the value of a variable in the tree
+	def setVariable(self, name, value):
+		self.root.setVariable(name, value)
 
 	# Try to simplify the tree
 	def simplify(self):
 		try:
 			self.root.simplify()
 		except EvalException:
-			print 'Failed to simplify tree.'
+			return False
+		# Try to evaluate the simplified root node
+		try:
+			self.root = self.root.evaluate()
+			return True
+		except EvalException:
+			return False
 
 	# Evaluate the entire tree
 	def evaluate(self):
@@ -144,9 +153,12 @@ class Node(object):
 	# Initialize the node
 	def __init__(self):
 		pass
+	# Set a variable
+	def setVariable(self, name, value):
+		return None
 	# Evaluate the node
 	def evaluate(self):
-		return 0
+		return None
 	# Make a string representation of the node
 	def __str__(self):
 		return 'Empty Node'
@@ -190,6 +202,15 @@ class Variable(Node):
 			return self.value.evaluate()
 		except:
 			raise EvalException('Cannot evaluate expressions that contain uninitialized variables.')
+	# Set the value of the variable
+	def set(self, value):
+		if type(value).__name__ == 'Value':
+			self.value = value
+		else:
+			self.value = Value(value)
+	# Unset the value of the variable
+	def unset(self):
+		self.value = Value()
 	# The length of the value
 	def __len__(self):
 		return len(self.name)
@@ -197,7 +218,7 @@ class Variable(Node):
 	def __str__(self):
 		try:
 			self.value.evaluate()
-			return self.name + '=' + str(self.value)
+			return '{' + self.name + '=' + str(self.value) + '}'
 		except:
 			return self.name
 
@@ -228,7 +249,6 @@ class Operation(Node):
 
 	# Simplify the node
 	def simplify(self):
-		print 'Simplified', self,' to ',
 		simplified = True
 		try:
 			lvalue = self.left.simplify()
@@ -242,13 +262,24 @@ class Operation(Node):
 		except EvalException:
 			simplified = False
 
-		print self
-
 		if simplified:
 			return Value(self.evaluate())
 		else:
 			return self
 
+	# Set the value of a variable in this node
+	def setVariable(self, name, value):
+		# See if the variable exists in the left and/or right subtrees
+		# Left side
+		if type(self.left).__name__ == 'Variable' and self.left.name == name:
+			self.left.set(value)
+		else:
+			self.left.setVariable(name, value)
+		# Right side
+		if type(self.right).__name__ == 'Variable' and self.right.name == name:
+			self.right.set(value)
+		else:
+			self.right.setVariable(name, value)
 		
 
 	# Return the value of this node
