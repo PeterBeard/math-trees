@@ -215,5 +215,31 @@ class TestParentheses(unittest.TestCase):
 
 		self.assertEqual(self.tree, u)
 
+# Test value substitution for variables
+class TestSubstitution(unittest.TestCase):
+	def setUp(self):
+		self.tree = expressionparse.Tree()
+	# Single variable
+	def test_single_variable(self):
+		var = expressionparse.Variable('x')
+		var.set(1)
+		self.assertEqual(var.evaluate(), 1)
+	# Expression with one variable
+	def test_exp_one_variable(self):
+		self.tree.parse('x+1')
+		self.tree.setVariable('x',1)
+		self.assertEqual(self.tree.evaluate(), 2)
+	# Expression with two instances of one variable
+	def test_exp_one_variable_twice(self):
+		self.tree.parse('x+1+x')
+		self.tree.setVariable('x',1)
+		self.assertEqual(self.tree.evaluate(), 3)
+	# Expression with two variables
+	def test_exp_two_variables(self):
+		self.tree.parse('x+y+1')
+		self.tree.setVariable('x',1)
+		self.tree.setVariable('y',2)
+		self.assertEqual(self.tree.evaluate(), 4)
+
 unittest.main()
 
