@@ -82,8 +82,8 @@ class Tree(object):
 		# Parse the top-level expression
 		for char in subexpressions:
 			# Invalid character
-			if char not in operations and char not in digits and type(char).__name__ not in ['Node', 'Variable', 'Plus', 'Minus', 'Times', 'Divided', 'Exponent', 'Value']:
-				raise ParseException('Invalid character')
+			if char not in operations and char not in digits and type(char).__name__ not in ['Node', 'Variable', 'Plus', 'Minus', 'Times', 'Divide', 'Exponent', 'Value']:
+				raise ParseException('Invalid character: ' + str(char))
 			# Add the digit to the current value
 			if char in digits or (char in operations and len(curr_value) == 0):
 				curr_value.append(char)
@@ -125,6 +125,14 @@ class Tree(object):
 				curr_value = char
 		# Add the last value to the tree
 		curr_op.addChild(curr_value)
+
+	# Try to simplify the tree
+	def simplify(self):
+		try:
+			self.root.simplify()
+		except EvalException:
+			print 'Failed to simplify tree.'
+
 	# Evaluate the entire tree
 	def evaluate(self):
 		return self.root.evaluate()
@@ -150,6 +158,9 @@ class Value(Node):
 	# Append a digit to the value
 	def append(self, digit):
 		self.value = self.value + str(digit)
+	# Simplify the node
+	def simplify(self):
+		return self
 	# Evaluate the node
 	def evaluate(self):
 		return float(self.value)
@@ -169,16 +180,26 @@ class Variable(Node):
 	# Initialize the node
 	def __init__(self, name=''):
 		self.name = str(name)
+		self.value = Value()
+	# Simplify the node
+	def simplify(self):
+		return self
 	# Evaluate the node
 	def evaluate(self):
-		raise EvalException('Cannot evaluate expressions that contain variables.')
-		return self.name
+		try:
+			return self.value.evaluate()
+		except:
+			raise EvalException('Cannot evaluate expressions that contain uninitialized variables.')
 	# The length of the value
 	def __len__(self):
 		return len(self.name)
 	# Return a string representation of the value
 	def __str__(self):
-		return self.name
+		try:
+			self.value.evaluate()
+			return self.name + '=' + str(self.value)
+		except:
+			return self.name
 
 class Operation(Node):
 	# Initialize the operation
@@ -204,6 +225,36 @@ class Operation(Node):
 		else:
 			raise NodeException('Node has no children to remove.')
 		return node
+
+	# Simplify the node
+	def simplify(self):
+		print 'Simplified', self,' to ',
+		simplified = True
+		try:
+			lvalue = self.left.simplify()
+			self.left = lvalue
+		except EvalException:
+			simplified = False	
+
+		try:
+			rvalue = self.right.simplify()
+			self.right = rvalue
+		except EvalException:
+			simplified = False
+
+		print self
+
+		if simplified:
+			return Value(self.evaluate())
+		else:
+			return self
+
+		
+
+	# Return the value of this node
+	def evaluate(self):
+		return None
+			
 	# See if two operation nodes are equal
 	def __eq__(self, other):
 		if type(other) == type(self):
