@@ -20,7 +20,7 @@ class EvalException(Exception):
 class Tree(object):
 	# Initialize the tree
 	def __init__(self):
-		self.root = Node()
+		self.root = None
 	# Get the length of the tree
 	def __len__(self):
 		return len(self.root)
@@ -32,19 +32,10 @@ class Tree(object):
 	# Parse a string expression
 	def parse(self, expression):
 		operations = ['+','-','*','/','^']
-		operation_weights = {
-			'+':1,
-			'-':1,
-			'*':2,
-			'/':2,
-			'^':3
-		}
 		digits = ['0','1','2','3','4','5','6','7','8','9','.']
 		curr_value = Value()
-		curr_weight = 0
-		next_weight = 0
-		curr_op = None
-		next_op = None
+		curr_op = Operation()
+		next_op = Operation()
 		subexpressions = []
 		# Find and parse top-level subexpressions (grouped by parentheses)
 		level = 0
@@ -89,12 +80,6 @@ class Tree(object):
 				curr_value.append(char)
 			# Add the operation to the parse tree
 			elif char in operations:
-				next_weight = operation_weights[char]
-				if curr_op != None:
-					curr_op.addChild(curr_value)
-					curr_value = Value()
-				else:
-					curr_weight = next_weight
 				if char == '+':
 					next_op = Plus()
 				elif char == '-':
@@ -105,26 +90,36 @@ class Tree(object):
 					next_op = Divide()
 				else:
 					next_op = Exponent()
+				if curr_op.weight > 0:
+					curr_op.addChild(curr_value)
+					curr_value = Value()
 				if len(curr_value) > 0:
 					curr_op = next_op
 					curr_op.addChild(curr_value)
 					self.root = curr_op
 					curr_value = Value()
 				else:
-					if next_weight > curr_weight:
+					# If the next node is heavier than the current one (e.g. * v. +), add it as a child of the current node and make the current node the root of the tree
+					if next_op.weight > curr_op.weight:
 						c = curr_op.removeChild()
 						curr_op.addChild(next_op)
 						next_op.addChild(c)
 						self.root = curr_op
+					# If the current and next nodes have the same weight, add the next node as a child of the current one -- note that this is the same as what we do when the next node is heavier BUT we do NOT re-root the tree
+					elif next_op.weight == curr_op.weight:
+						c = curr_op.removeChild()
+						curr_op.addChild(next_op)
+						next_op.addChild(c)
 					else:
 						next_op.addChild(self.root)
 						self.root = next_op
 					curr_op = next_op
-					curr_weight = next_weight
 			else:
 				curr_value = char
 		# Add the last value to the tree
 		curr_op.addChild(curr_value)
+		if self.root == None:
+			self.root = curr_op
 	# Set the value of a variable in the tree
 	def setVariable(self, name, value):
 		self.root.setVariable(name, value)
@@ -161,7 +156,7 @@ class Node(object):
 		return None
 	# Make a string representation of the node
 	def __str__(self):
-		return 'Empty Node'
+		return 'Empty Node (' + type(self).__name__ + ')'
 
 class Value(Node):
 	# Initialize the node
@@ -227,22 +222,28 @@ class Operation(Node):
 	def __init__(self):
 		self.left = None
 		self.right = None
+		self.parent = None
+		self.weight = 0
 	# Add a child to the node
 	def addChild(self, child):
-		if not self.left:
+		if self.left == None:
 			self.left = child
-		elif not self.right:
+			child.parent = self
+		elif self.right == None:
 			self.right = child
+			child.parent = self
 		else:
 			raise NodeException('Node already has two children.')
 	# Remove a child from the node
 	def removeChild(self):
-		if self.right:
+		if self.right != None:
 			node = self.right
 			self.right = None
-		elif self.left:
+			node.parent = None
+		elif self.left != None:
 			node = self.left
 			self.left = None
+			node.parent = None
 		else:
 			raise NodeException('Node has no children to remove.')
 		return node
@@ -300,6 +301,7 @@ class Plus(Operation):
 	# Initialize the node
 	def __init__(self):
 		super(Plus,self).__init__()
+		self.weight = 1
 	# Evaluate the node
 	def evaluate(self):
 		if self.left and self.right:
@@ -315,6 +317,7 @@ class Minus(Operation):
 	# Initialize the node
 	def __init__(self):
 		super(Minus,self).__init__()
+		self.weight = 1
 	# Evaluate the node
 	def evaluate(self):
 		if self.left and self.right:
@@ -330,6 +333,7 @@ class Times(Operation):
 	# Initialize the node
 	def __init__(self):
 		super(Times,self).__init__()
+		self.weight = 2
 	# Evaluate the node
 	def evaluate(self):
 		if self.left and self.right:
@@ -345,6 +349,7 @@ class Divide(Operation):
 	# Initialize the node
 	def __init__(self):
 		super(Divide,self).__init__()
+		self.weight = 2
 	# Evaluate the node
 	def evaluate(self):
 		if self.left and self.right:
@@ -359,6 +364,7 @@ class Exponent(Operation):
 	# Initialize the node
 	def __init__(self):
 		super(Exponent,self).__init__()
+		self.weight = 3
 	# Evaluate the node
 	def evaluate(self):
 		if self.left and self.right:
