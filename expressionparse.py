@@ -568,7 +568,7 @@ class Divide(Operation):
 		# Make sure the children are both operations, both the same type, and have a greater weight
 		if Operation in type(self.left).__bases__ and type(self.left) == type(self.right) and self.left.weight - self.weight == 1:
 			if child_type != 'Exponent':
-				return super(Times,self).factor()
+				return super(Divide,self).factor()
 			else:
 				# Get grandchildren
 				llgc = self.left.left
@@ -599,7 +599,7 @@ class Divide(Operation):
 					return self
 				# If the common factor is on the right, normal factoring rules apply
 				if not common_factor_on_left:
-					return super(Times,self).factor()
+					return super(Divide,self).factor()
 				# Create a new parent node with the type of the original child
 				if child_type == 'Exponent':
 					# This operation requires the common factor to be on the same side in both children
