@@ -154,9 +154,15 @@ class Tree(object):
 	# Evaluate the entire tree
 	def evaluate(self):
 		return self.root.evaluate()
-	# Print the tree in a pretty way
-	def prettyString(self):
-		return self.root.prettyString()
+	# Print the tree using Infix Notation
+	def toInfixNotation(self):
+		return self.root.toInfixNotation()
+	# Print the tree using Polish Notation
+	def toPolishNotation(self):
+		return self.root.toPolishNotation()
+	# Print the tree using Reverse Polish Notation
+	def toReversePolishNotation(self):
+		return self.root.toReversePolishNotation()
 	# Make a string representation of the tree
 	def __str__(self):
 		return self.root.__str__()
@@ -172,7 +178,13 @@ class Node(object):
 	def evaluate(self):
 		return None
 	# Return a nice-looking string representing the node
-	def prettyString(self):
+	def toInfixNotation(self):
+		return self.__str__()
+	# Return a Polish notation string of the node
+	def toPolishNotation(self):
+		return self.__str__()
+	# Return a Reverse Polish notation string of the node
+	def toReversePolishNotation(self):
 		return self.__str__()
 	# Make a string representation of the node
 	def __str__(self):
@@ -430,10 +442,10 @@ class Operation(Node):
 			return (self.left == other.left) and (self.right == other.right)
 		return False
 
-	# Return a pretty string representing the operation
-	def prettyString(self):
-		lstring = self.left.prettyString()
-		rstring = self.right.prettyString()
+	# Return a Infix Notation string representing the operation
+	def toInfixNotation(self):
+		lstring = self.left.toInfixNotation()
+		rstring = self.right.toInfixNotation()
 		string = ''
 		if Operation in type(self.left).__bases__ and self.weight > self.left.weight:
 			string += '(' + lstring + ')'
@@ -447,6 +459,59 @@ class Operation(Node):
 			string += rstring
 
 		return string
+
+	# Return a Polish Notation string of the operation
+	def toPolishNotation(self):
+		lstring = self.left.toPolishNotation()
+		rstring = self.right.toPolishNotation()
+		string = self.symbol + ' '
+		if Operation in type(self.left).__bases__ and self.weight > self.left.weight:
+			string += '(' + lstring + ')'
+		else:
+			# Pull off the operator if the left child has the same type
+			if type(self) == type(self.left):
+				string += lstring[2:]
+			else:
+				string += lstring
+		string += ' '
+		if Operation in type(self.right).__bases__ and self.weight > self.right.weight:
+			string += '(' + rstring + ')'
+		else:
+			# Pull off the operator if the right child has the same type
+			if type(self) == type(self.right):
+				string += rstring[2:]
+			else:
+				string += rstring
+		
+		return string
+
+	# Return a Reverse Polish Notation string of the operation
+	def toReversePolishNotation(self):
+		lstring = self.left.toReversePolishNotation()
+		rstring = self.right.toReversePolishNotation()
+		string = ''
+		if Operation in type(self.left).__bases__ and self.weight > self.left.weight:
+			string += '(' + lstring + ')'
+		else:
+			# Pull off the operator if the left child has the same type
+			if type(self) == type(self.left):
+				string += lstring[:-2]
+			else:
+				string += lstring
+		string += ' '
+		if Operation in type(self.right).__bases__ and self.weight > self.right.weight:
+			string += '(' + rstring + ')'
+		else:
+			# Pull off the operator if the right child has the same type
+			if type(self) == type(self.right):
+				string += rstring[:-2]
+			else:
+				string += rstring
+		
+		string += ' ' + self.symbol
+
+		return string
+		#return '(' + self.left.toReversePolishNotation() + ' ' + self.right.toReversePolishNotation() + ' ' + self.symbol + ' )'
 
 	# Return the length of the node
 	def __len__(self):
@@ -570,10 +635,10 @@ class Times(Operation):
 				return new_parent
 		else:
 			return self
-	# Return a pretty string representing the operation
-	def prettyString(self):
-		lstring = self.left.prettyString()
-		rstring = self.right.prettyString()
+	# Return an Infix Notation string representing the operation
+	def toInfixNotation(self):
+		lstring = self.left.toInfixNotation()
+		rstring = self.right.toInfixNotation()
 		
 		if Operation in type(self.left).__bases__ and self.weight > self.left.weight:
 			lstring = '(' + lstring + ')'
