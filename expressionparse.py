@@ -154,6 +154,9 @@ class Tree(object):
 	# Evaluate the entire tree
 	def evaluate(self):
 		return self.root.evaluate()
+	# Print the tree in a pretty way
+	def prettyString(self):
+		return self.root.prettyString()
 	# Make a string representation of the tree
 	def __str__(self):
 		return self.root.__str__()
@@ -168,6 +171,9 @@ class Node(object):
 	# Evaluate the node
 	def evaluate(self):
 		return None
+	# Return a nice-looking string representing the node
+	def prettyString(self):
+		return self.__str__()
 	# Make a string representation of the node
 	def __str__(self):
 		return 'Empty Node (' + type(self).__name__ + ')'
@@ -250,6 +256,7 @@ class Operation(Node):
 		self.right = None
 		self.parent = None
 		self.weight = 0
+		self.symbol = '?'
 	# Add a child to the node
 	def addChild(self, child):
 		if self.left == None:
@@ -422,9 +429,32 @@ class Operation(Node):
 		if type(other) == type(self):
 			return (self.left == other.left) and (self.right == other.right)
 		return False
+
+	# Return a pretty string representing the operation
+	def prettyString(self):
+		lstring = self.left.prettyString()
+		rstring = self.right.prettyString()
+		string = ''
+		if Operation in type(self.left).__bases__ and self.weight > self.left.weight:
+			string += '(' + lstring + ')'
+		else:
+			string += lstring
+
+		string += ' ' + self.symbol + ' '
+		if Operation in type(self.right).__bases__ and self.weight > self.right.weight:
+			string += '(' + rstring + ')'
+		else:
+			string += rstring
+
+		return string
+
 	# Return the length of the node
 	def __len__(self):
 		return len(self.left) + len(self.right)
+
+	# Return a string representation of the node
+	def __str__(self):
+		return '[ ' + self.left.__str__() + ' ' + self.symbol + ' ' + self.right.__str__() + ' ]'
 
 # Add two nodes together
 class Plus(Operation):
@@ -432,15 +462,13 @@ class Plus(Operation):
 	def __init__(self):
 		super(Plus,self).__init__()
 		self.weight = 1
+		self.symbol = '+'
 	# Evaluate the node
 	def evaluate(self):
 		if self.left and self.right:
 			return self.left.evaluate() + self.right.evaluate()
 		else:
 			raise NodeException('Node does not have enough children.')
-	# Return a string representation of the operation
-	def __str__(self):
-		return '[ ' + self.left.__str__() + ' + ' + self.right.__str__() + ' ]'
 
 # Subtract two nodes
 class Minus(Operation):
@@ -448,15 +476,13 @@ class Minus(Operation):
 	def __init__(self):
 		super(Minus,self).__init__()
 		self.weight = 1
+		self.symbol = '-'
 	# Evaluate the node
 	def evaluate(self):
 		if self.left and self.right:
 			return self.left.evaluate() - self.right.evaluate()
 		else:
 			raise NodeException('Node does not have enough children.')
-	# Return a string representation of the operation
-	def __str__(self):
-		return '[ ' + self.left.__str__() + ' - ' + self.right.__str__() + ' ]'
 
 # Multiply two nodes
 class Times(Operation):
@@ -464,6 +490,7 @@ class Times(Operation):
 	def __init__(self):
 		super(Times,self).__init__()
 		self.weight = 2
+		self.symbol = '*'
 	# Evaluate the node
 	def evaluate(self):
 		if self.left and self.right:
@@ -543,6 +570,23 @@ class Times(Operation):
 				return new_parent
 		else:
 			return self
+	# Return a pretty string representing the operation
+	def prettyString(self):
+		lstring = self.left.prettyString()
+		rstring = self.right.prettyString()
+		
+		if Operation in type(self.left).__bases__ and self.weight > self.left.weight:
+			lstring = '(' + lstring + ')'
+
+		if Operation in type(self.right).__bases__ and self.weight > self.right.weight:
+			rstring = '(' + rstring + ')'
+
+		# Multiplication of variables is usually written with the variables adjacent to each other
+		if not (type(self.left).__name__ == 'Value' and type(self.right).__name__ == 'Value'):
+			return lstring + rstring
+		else:
+			return lstring + ' * ' + rstring
+
 	# Return a string representation of the operation
 	def __str__(self):
 		# Multiplication of variables is usually written with the variables adjacent to each other
@@ -557,6 +601,7 @@ class Divide(Operation):
 	def __init__(self):
 		super(Divide,self).__init__()
 		self.weight = 2
+		self.symbol = '/'
 	# Evaluate the node
 	def evaluate(self):
 		if self.left and self.right:
@@ -636,15 +681,14 @@ class Divide(Operation):
 				return new_parent
 		else:
 			return self
-	# Return a string representation of the operation
-	def __str__(self):
-		return '[ ' + self.left.__str__() + ' / ' + self.right.__str__() + ' ]'
+
 # Exponentiate two nodes
 class Exponent(Operation):
 	# Initialize the node
 	def __init__(self):
 		super(Exponent,self).__init__()
 		self.weight = 3
+		self.symbol = '^'
 	# Evaluate the node
 	def evaluate(self):
 		if self.left and self.right:
@@ -661,9 +705,4 @@ class Exponent(Operation):
 				return lvalue ** rvalue
 		else:
 			raise NodeException('Node does not have enough children.')
-
-	# Return a string representation of the operation
-	def __str__(self):
-		return '[ ' + self.left.__str__() + ' ^ ' + self.right.__str__() + ' ]'
-
 
