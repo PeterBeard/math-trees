@@ -289,5 +289,172 @@ class TestSubstitution(unittest.TestCase):
 		self.tree.setVariable('y',2)
 		self.assertEqual(self.tree.evaluate(), 4)
 
+# Test factoring of nodes
+class TestFactoring(unittest.TestCase):
+	def setUp(self):
+		self.tree = expressionparse.Tree()
+		self.factored_tree = expressionparse.Tree()
+	# Addition of multiplication (common factor on left)
+	def test_add_mul_left(self):
+		self.tree.parse('x*y+x*z')
+		self.factored_tree.parse('x*(y+z)')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+	# Addition of multiplication (common factor on left then right)
+	def test_add_mul_left_right(self):
+		self.tree.parse('x*y+z*x')
+		self.factored_tree.parse('x*(y+z)')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+	# Addition of multiplication (common factor on right then left)
+	def test_add_mul_right_left(self):
+		self.tree.parse('y*x+x*z')
+		self.factored_tree.parse('(y+z)*x')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+	# Addition of multiplication (common factor on right)
+	def test_add_mul_right(self):
+		self.tree.parse('y*x+z*x')
+		self.factored_tree.parse('(y+z)*x')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+	# Subtraction of multiplication (common factor on left)
+	def test_sub_mul_left(self):
+		self.tree.parse('x*y-x*z')
+		self.factored_tree.parse('x*(y-z)')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+	# Subtraction of multiplication (common factor on left then right)
+	def test_sub_mul_left_right(self):
+		self.tree.parse('x*y-z*x')
+		self.factored_tree.parse('x*(y-z)')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+	# Subtraction of multiplication (common factor on left then right)
+	def test_sub_mul_right_left(self):
+		self.tree.parse('y*x-x*z')
+		self.factored_tree.parse('(y-z)*x')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+	# Subtraction of multiplication (common factor on right)
+	def test_sub_mul_right(self):
+		self.tree.parse('y*x-z*x')
+		self.factored_tree.parse('(y-z)*x')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+	# Addition of division (common factor on left)
+	def test_add_div_left(self):
+		self.tree.parse('x/y+x/z')
+		self.factored_tree.parse('x/(y+z)')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+	# Addition of division (common factor on left then right)
+	def test_add_div_left_right(self):
+		self.tree.parse('x/y+z/x')
+		self.factored_tree.parse('x/y+z/x')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+	# Addition of division (common factor on right then left)
+	def test_add_div_right_left(self):
+		self.tree.parse('y/x+x/z')
+		self.factored_tree.parse('y/x+x/z')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+	# Addition of division (common factor on right)
+	def test_add_div_right(self):
+		self.tree.parse('y/x+z/x')
+		self.factored_tree.parse('(y+z)/x')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+	# Subtraction of division (common factor on left)
+	def test_sub_div_left(self):
+		self.tree.parse('x/y-x/z')
+		self.factored_tree.parse('x/(y-z)')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+	# Subtraction of division (common factor on left then right)
+	def test_sub_div_left_right(self):
+		self.tree.parse('x/y-z/x')
+		self.factored_tree.parse('x/y-z/x')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+	# Subtraction of division (common factor on left then right)
+	def test_sub_div_right_left(self):
+		self.tree.parse('y/x-x/z')
+		self.factored_tree.parse('y/x-x/z')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+	# Subtraction of division (common factor on right)
+	def test_sub_div_right(self):
+		self.tree.parse('y/x-z/x')
+		self.factored_tree.parse('(y-z)/x')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+	# Addition of exponentiation (common factor on left)
+	def test_add_exp_left(self):
+		self.tree.parse('x^y+x^z')
+		self.factored_tree.parse('x^y+x^z')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+	# Addition of exponentiation (common factor on left then right)
+	def test_add_exp_left_right(self):
+		self.tree.parse('x^y+z^x')
+		self.factored_tree.parse('x^y+z^x')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+	# Addition of exponentiation (common factor on right then left)
+	def test_add_exp_right_left(self):
+		self.tree.parse('y^x+x^z')
+		self.factored_tree.parse('y^x+x^z')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+	# Addition of exponentiation (common factor on right)
+	def test_add_exp_right(self):
+		self.tree.parse('y^x+z^x')
+		self.factored_tree.parse('y^x+z^x')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+	# Subtraction of exponentiation (common factor on left)
+	def test_sub_exp_left(self):
+		self.tree.parse('x^y-x^z')
+		self.factored_tree.parse('x^y-x^z')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+	# Subtraction of exponentiation (common factor on left then right)
+	def test_sub_exp_left_right(self):
+		self.tree.parse('x^y-z^x')
+		self.factored_tree.parse('x^y-z^x')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+	# Subtraction of exponentiation (common factor on right then left)
+	def test_sub_exp_right_left(self):
+		self.tree.parse('y^x-x^z')
+		self.factored_tree.parse('y^x-x^z')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+	# Subtraction of exponentiation (common factor on right)
+	def test_sub_exp_right(self):
+		self.tree.parse('y^x-z^x')
+		self.factored_tree.parse('y^x-z^x')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+	# Multiplication of exponentiation (common factor on left)
+	def test_mul_exp_left(self):
+		self.tree.parse('x^y*x^z')
+		self.factored_tree.parse('x^(y+z)')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+	# Multiplication of exponentiation (common factor on left then right)
+	def test_mul_exp_left_right(self):
+		self.tree.parse('x^y*z^x')
+		self.factored_tree.parse('x^y*z^x')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+	# Multiplication of exponentiation (common factor on right then left)
+	def test_mul_exp_right_left(self):
+		self.tree.parse('y^x*x^z')
+		self.factored_tree.parse('y^x*x^z')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+	# Multiplication of exponentiation (common factor on right)
+	def test_mul_exp_right(self):
+		self.tree.parse('y^x*z^x')
+		self.factored_tree.parse('(y*z)^x')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+	# Division of exponentiation (common factor on left)
+	def test_div_exp_left(self):
+		self.tree.parse('x^y/x^z')
+		self.factored_tree.parse('x^(y-z)')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+	# Division of exponentiation (common factor on left then right)
+	def test_div_exp_left_right(self):
+		self.tree.parse('x^y/z^x')
+		self.factored_tree.parse('x^y/z^x')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+	# Division of exponentiation (common factor on right then left)
+	def test_div_exp_right_left(self):
+		self.tree.parse('y^x/x^z')
+		self.factored_tree.parse('y^x/x^z')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+	# Division of exponentiation (common factor on right)
+	def test_div_exp_right(self):
+		self.tree.parse('y^x/z^x')
+		self.factored_tree.parse('(y/z)^x')
+		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
+
+# Run the tests
 unittest.main()
 
