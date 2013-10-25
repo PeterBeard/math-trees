@@ -23,16 +23,13 @@ class Tree(object):
 	# Initialize the tree
 	def __init__(self):
 		self.root = None
-	# Get the length of the tree
-	def __len__(self):
-		return len(self.root)
-	# Check if two trees are equal
-	def __eq__(self, other):
-		if isinstance(other, Tree):
-			return self.root == other.root
-		return False
+
 	# Parse a string expression
 	def parse(self, expression):
+		self.parseInfixNotation(expression)
+
+	# Parse a string expression written using Infix Notation
+	def parseInfixNotation(self, expression):
 		operations = ['+','-','*','/','^']
 		digits = ['0','1','2','3','4','5','6','7','8','9','.']
 		curr_value = Value()
@@ -135,9 +132,11 @@ class Tree(object):
 		curr_op.addChild(curr_value)
 		if self.root == None:
 			self.root = curr_op
+
 	# Set the value of a variable in the tree
 	def setVariable(self, name, value):
 		self.root.setVariable(name, value)
+
 	# Try to simplify the tree
 	def simplify(self):
 		try:
@@ -154,18 +153,32 @@ class Tree(object):
 	# Evaluate the entire tree
 	def evaluate(self):
 		return self.root.evaluate()
+
 	# Print the tree using Infix Notation
 	def toInfixNotation(self):
 		return self.root.toInfixNotation()
+
 	# Print the tree using Polish Notation
 	def toPolishNotation(self):
 		return self.root.toPolishNotation()
+
 	# Print the tree using Reverse Polish Notation
 	def toReversePolishNotation(self):
 		return self.root.toReversePolishNotation()
+
 	# Make a string representation of the tree
 	def __str__(self):
 		return self.root.__str__()
+	
+	# Get the length of the tree
+	def __len__(self):
+		return len(self.root)
+
+	# Check if two trees are equal
+	def __eq__(self, other):
+		if isinstance(other, Tree):
+			return self.root == other.root
+		return False
 
 class Node(object):
 	# Initialize the node
