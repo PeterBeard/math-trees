@@ -1,3 +1,5 @@
+import re
+
 # Parse numeric expressions using trees
 class NodeException(Exception):
 	def __init__(self, value):
@@ -45,6 +47,19 @@ class Tree(object):
 		expression = expression.replace(' ','')
 		# Next replace adjacent parentheses with explicit multiplications so we can parse more easily
 		expression = expression.replace(')(',')*(')
+		# Make variable multiplications written as adjacent characters (e.g. 3x, xy) explicit
+		p = re.compile('(\d+)(\w)')
+		expression = p.sub(r'\1*\2',expression)
+		p = re.compile('(\w)(\d+)')
+		expression = p.sub(r'\1*\2',expression)
+		p = re.compile('(\w)(?=\w)')
+		expression = p.sub(r'\1*',expression)
+		# Multiplication of parenthetical expression can also be written implicitly as 'x(...)' or '(...)x'
+		# Make these explicit here
+		p = re.compile('([\w\d]+)\(')
+		expression = p.sub(r'\1*(',expression)
+		p = re.compile('\)([\w\d]+)')
+		expression = p.sub(r')*\1',expression)
 		# Break the expression up into its subexpressions, recursively parsing them as we go
 		for i in range(0,len(expression)):
 			char = expression[i]
