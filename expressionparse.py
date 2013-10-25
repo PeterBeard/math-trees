@@ -1,25 +1,53 @@
+import inspect
 import re
 
-# Parse numeric expressions using trees
+# A general node-related exception
 class NodeException(Exception):
 	def __init__(self, value):
 		self.value = value
 	def __str__(self):
 		return repr(self.value)
 
+# Exception that raised when parsing an expression
 class ParseException(Exception):
 	def __init__(self, value):
 		self.value = value
 	def __str__(self):
 		return repr(self.value)
 
+# Exception that's raised when evaluating an expression
 class EvalException(Exception):
 	def __init__(self, value):
 		self.value = value
 	def __str__(self):
 		return repr(self.value)
 
-class Tree(object):
+class Node(object):
+	# Initialize the node
+	def __init__(self):
+		pass
+	# Set a variable
+	def setVariable(self, name, value):
+		return None
+	# Evaluate the node
+	def evaluate(self):
+		return None
+	# Return a nice-looking string representing the node
+	def toInfixNotation(self):
+		return self.__str__()
+	# Return a Polish notation string of the node
+	def toPolishNotation(self):
+		return self.__str__()
+	# Return a Reverse Polish notation string of the node
+	def toReversePolishNotation(self):
+		return self.__str__()
+	# Make a string representation of the node
+	def __str__(self):
+		return 'Empty Node (' + type(self).__name__ + ')'
+
+# A class representing an expression tree. Contains logic for parsing strings.
+# TODO: This class is probably not that different from the Node class, so they should probably be merged or this class should at least be simplified.
+class Tree(Node):
 	# Initialize the tree
 	def __init__(self):
 		self.root = None
@@ -83,33 +111,28 @@ class Tree(object):
 		if level != 0:
 			raise ParseException('Unmatched parentheses.')
 		# Parse the top-level expression
-		for char in subexpressions:
+		for subexp in subexpressions:
 			# Invalid character
-			if char not in operations and char not in digits and type(char).__name__ not in ['Node', 'Variable', 'Plus', 'Minus', 'Times', 'Divide', 'Exponent', 'Value']:
-				raise ParseException('Invalid character: ' + str(char))
+			if subexp not in operations and subexp not in digits and Node not in inspect.getmro(type(subexp)):
+				raise ParseException('Invalid subexpression: ' + str(subexp))
 			# Add the digit to the current value
-			if char in digits or (char in operations and len(curr_value) == 0):
-				curr_value.append(char)
+			if subexp in digits or (subexp in operations and len(curr_value) == 0):
+				curr_value.append(subexp)
 			# Add the operation to the parse tree
-			elif char in operations:
-				if char == '+':
-					next_op = Plus()
-				elif char == '-':
-					next_op = Minus()
-				elif char == '*':
-					next_op = Times()
-				elif char == '/':
-					next_op = Divide()
-				else:
-					next_op = Exponent()
+			elif subexp in operations:
+				# Get an object to represent the operation
+				next_op = getOperation(subexp)
+				# Add the current value to the current node
 				if curr_op.weight > 0:
 					curr_op.addChild(curr_value)
 					curr_value = Value()
+				# If the current value has been set, add it to the next operation and re-root the tree
 				if len(curr_value) > 0:
 					curr_op = next_op
 					curr_op.addChild(curr_value)
 					self.root = curr_op
 					curr_value = Value()
+				# The value was already assigned to the current node, so figure out where to put the next node in the tree
 				else:
 					# If the next node is heavier than the current one (e.g. * v. +), add it as a child of the current node and make the current node the root of the tree
 					if next_op.weight > curr_op.weight:
@@ -126,8 +149,9 @@ class Tree(object):
 						next_op.addChild(self.root)
 						self.root = next_op
 					curr_op = next_op
+			# The current subexpression is a node; add it to the tree as-is
 			else:
-				curr_value = char
+				curr_value = subexp
 		# Add the last value to the tree
 		curr_op.addChild(curr_value)
 		if self.root == None:
@@ -180,29 +204,7 @@ class Tree(object):
 			return self.root == other.root
 		return False
 
-class Node(object):
-	# Initialize the node
-	def __init__(self):
-		pass
-	# Set a variable
-	def setVariable(self, name, value):
-		return None
-	# Evaluate the node
-	def evaluate(self):
-		return None
-	# Return a nice-looking string representing the node
-	def toInfixNotation(self):
-		return self.__str__()
-	# Return a Polish notation string of the node
-	def toPolishNotation(self):
-		return self.__str__()
-	# Return a Reverse Polish notation string of the node
-	def toReversePolishNotation(self):
-		return self.__str__()
-	# Make a string representation of the node
-	def __str__(self):
-		return 'Empty Node (' + type(self).__name__ + ')'
-
+# A class representing a numeric value, e.g. 5, -7, 2.1, etc.
 class Value(Node):
 	# Initialize the node
 	def __init__(self, val=''):
@@ -228,6 +230,7 @@ class Value(Node):
 	def __str__(self):
 		return self.value
 
+# Class representing a variable, e.g. x
 class Variable(Node):
 	# Initialize the node
 	def __init__(self, name=''):
@@ -274,6 +277,7 @@ class Variable(Node):
 		except:
 			return self.name
 
+# A class representing a mathematical operation, e.g. plus, minus, etc.
 class Operation(Node):
 	# Initialize the operation
 	def __init__(self):
@@ -783,4 +787,19 @@ class Exponent(Operation):
 				return lvalue ** rvalue
 		else:
 			raise NodeException('Node does not have enough children.')
+
+# Return an object of the correct type given the symbol representing an operation
+def getOperation(operation_symbol):
+	if operation_symbol == '+':
+		return Plus()
+	elif operation_symbol == '-':
+		return Minus()
+	elif operation_symbol == '*':
+		return Times()
+	elif operation_symbol == '/':
+		return Divide()
+	elif operation_symbol == '^':
+		return Exponent()
+	else:
+		raise ParseError('Unknown operation "' + operation_symbol + '"')
 
