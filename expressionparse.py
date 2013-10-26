@@ -18,6 +18,7 @@
 # along with Expressionparse. If not, see <http://www.gnu.org/licenses/>.
 
 import inspect
+import math
 import re
 
 # A general node-related exception
@@ -41,6 +42,7 @@ class EvalException(Exception):
 	def __str__(self):
 		return repr(self.value)
 
+# The base node class. Implements evaluation and stringification functions.
 class Node(object):
 	# Initialize the node
 	def __init__(self):
@@ -77,7 +79,7 @@ class Tree(Node):
 
 	# Parse a string expression written using Infix Notation
 	def parseInfixNotation(self, expression):
-		operations = ['+','-','*','/','^']
+		operations = ['+','-','*','/','^','!']
 		digits = ['0','1','2','3','4','5','6','7','8','9','.']
 		curr_value = Value()
 		curr_op = Operation()
@@ -135,17 +137,17 @@ class Tree(Node):
 			if subexp not in operations and subexp not in digits and Node not in inspect.getmro(type(subexp)):
 				raise ParseException('Invalid subexpression: ' + str(subexp))
 			# Add the digit to the current value
-			if subexp in digits or (subexp in operations and len(curr_value) == 0):
+			if subexp in digits or (subexp in operations and len(curr_value) == 0 and curr_op.arity == 2):
 				curr_value.append(subexp)
 			# Add the operation to the parse tree
 			elif subexp in operations:
 				# Get an object to represent the operation
 				next_op = getOperation(subexp)
 				# Add the current value to the current node
-				if curr_op.weight > 0:
+				if curr_op.weight > 0 and curr_op.arity != 1:
 					curr_op.addChild(curr_value)
 					curr_value = Value()
-				# If the current value has been set, add it to the next operation and re-root the tree
+				# If the current value is set (i.e. this is the first operation we've found), add it to the next operation and re-root the tree
 				if len(curr_value) > 0:
 					curr_op = next_op
 					curr_op.addChild(curr_value)
@@ -153,26 +155,52 @@ class Tree(Node):
 					curr_value = Value()
 				# The value was already assigned to the current node, so figure out where to put the next node in the tree
 				else:
-					# If the next node is heavier than the current one (e.g. * v. +), add it as a child of the current node and make the current node the root of the tree
-					if next_op.weight > curr_op.weight:
-						c = curr_op.removeChild()
+					if curr_op.arity == 1:
+						# Add the unary operator as a child of the next operation regardless of their relative weights; what matters is the weight of the parent compared to the next node
+						p = curr_op.parent
+						if p != None:
+							if next_op.weight > p.weight:
+								c = p.removeChild()
+								p.addChild(next_op)
+								next_op.addChild(c)
+								self.root = p
+							elif next_op.weight == p.weight:
+								c = p.removeChild()
+								p.addChild(next_op)
+								next_op.addChild(c)
+							else:
+								next_op.addChild(self.root)
+								self.root = next_op
+						else:
+							next_op.addChild(curr_op)
+							self.root = next_op
+					elif next_op.arity == 1:
+						# Add the unary operator as a child of the current operation regardless of their relative weights; what matters is the weight of the parent compared to the next node
+						next_op.addChild(curr_op.removeChild())
 						curr_op.addChild(next_op)
-						next_op.addChild(c)
-						self.root = curr_op
-					# If the current and next nodes have the same weight, add the next node as a child of the current one -- note that this is the same as what we do when the next node is heavier BUT we do NOT re-root the tree
-					elif next_op.weight == curr_op.weight:
-						c = curr_op.removeChild()
-						curr_op.addChild(next_op)
-						next_op.addChild(c)
 					else:
-						next_op.addChild(self.root)
-						self.root = next_op
+						# If the next node is heavier than the current one (e.g. * v. +), add it as a child of the current node and make the current node the root of the tree
+						if next_op.weight > curr_op.weight:
+							c = curr_op.removeChild()
+							curr_op.addChild(next_op)
+							next_op.addChild(c)
+							self.root = curr_op
+						# If the current and next nodes have the same weight, add the next node as a child of the current one -- note that this is the same as what we do when the next node is heavier BUT we do NOT re-root the tree
+						elif next_op.weight == curr_op.weight:
+							c = curr_op.removeChild()
+							curr_op.addChild(next_op)
+							next_op.addChild(c)
+						else:
+							next_op.addChild(self.root)
+							self.root = next_op
+						
 					curr_op = next_op
 			# The current subexpression is a node; add it to the tree as-is
 			else:
 				curr_value = subexp
 		# Add the last value to the tree
-		curr_op.addChild(curr_value)
+		if curr_op.arity == 2:
+			curr_op.addChild(curr_value)
 		if self.root == None:
 			self.root = curr_op
 
@@ -300,11 +328,12 @@ class Variable(Node):
 class Operation(Node):
 	# Initialize the operation
 	def __init__(self):
-		self.left = None
-		self.right = None
-		self.parent = None
-		self.weight = 0
-		self.symbol = '?'
+		self.left = None		# Initialize left child to none
+		self.right = None		# Initialize right child to none
+		self.parent = None		# Initialize parent to none
+		self.weight = 0			# Default weight is 0
+		self.symbol = '?'		# Default operator symbol is ?
+		self.arity = 2			# Default to binary operator
 	# Add a child to the node
 	def addChild(self, child):
 		if self.left == None:
@@ -472,90 +501,131 @@ class Operation(Node):
 	def evaluate(self):
 		return None
 			
+	# Return an Infix Notation string representing the operation
+	def toInfixNotation(self):
+		# Unary operators
+		if self.arity == 1:
+			lstring = self.left.toInfixNotation()
+			if Operation in type(self.left).__bases__ and self.weight > self.left.weight:
+				string = '(' + lstring + ')'
+			else:
+				string = lstring
+			string += self.symbol
+		# Binary operators
+		elif self.arity == 2:
+			lstring = self.left.toInfixNotation()
+			rstring = self.right.toInfixNotation()
+			string = ''
+			if Operation in type(self.left).__bases__ and self.weight > self.left.weight:
+				string += '(' + lstring + ')'
+			else:
+				string += lstring
+
+			string += ' ' + self.symbol + ' '
+			if Operation in type(self.right).__bases__ and self.weight > self.right.weight:
+				string += '(' + rstring + ')'
+			else:
+				string += rstring
+
+		return string
+
+	# Return a Polish Notation string of the operation
+	def toPolishNotation(self):
+		if self.arity == 1:
+			lstring = self.left.toPolishNotation()
+			string = self.symbol + ' '
+			if Operation in type(self.left).__bases__ and self.weight > self.left.weight:
+				string += '(' + lstring + ')'
+			else:
+				# Pull off the operator if the left child has the same type
+				if type(self) == type(self.left):
+					string += lstring[2:]
+				else:
+					string += lstring
+		else:
+			lstring = self.left.toPolishNotation()
+			rstring = self.right.toPolishNotation()
+			string = self.symbol + ' '
+			if Operation in type(self.left).__bases__ and self.weight > self.left.weight:
+				string += '(' + lstring + ')'
+			else:
+				# Pull off the operator if the left child has the same type
+				if type(self) == type(self.left):
+					string += lstring[2:]
+				else:
+					string += lstring
+			string += ' '
+			if Operation in type(self.right).__bases__ and self.weight > self.right.weight:
+				string += '(' + rstring + ')'
+			else:
+				# Pull off the operator if the right child has the same type
+				if type(self) == type(self.right):
+					string += rstring[2:]
+				else:
+					string += rstring
+		
+		return string
+
+	# Return a Reverse Polish Notation string of the operation
+	def toReversePolishNotation(self):
+		if self.arity == 1:
+			lstring = self.left.toReversePolishNotation()
+			if Operation in type(self.left).__bases__ and self.weight > self.left.weight:
+				string = '(' + lstring + ')'
+			else:
+				# Pull off the operator if the left child has the same type
+				if type(self) == type(self.left):
+					string = lstring[:-2]
+				else:
+					string = lstring
+			string += ' ' + self.symbol
+		else:
+			lstring = self.left.toReversePolishNotation()
+			rstring = self.right.toReversePolishNotation()
+			string = ''
+			if Operation in type(self.left).__bases__ and self.weight > self.left.weight:
+				string += '(' + lstring + ')'
+			else:
+				# Pull off the operator if the left child has the same type
+				if type(self) == type(self.left):
+					string += lstring[:-2]
+				else:
+					string += lstring
+			string += ' '
+			if Operation in type(self.right).__bases__ and self.weight > self.right.weight:
+				string += '(' + rstring + ')'
+			else:
+				# Pull off the operator if the right child has the same type
+				if type(self) == type(self.right):
+					string += rstring[:-2]
+				else:
+					string += rstring
+			
+			string += ' ' + self.symbol
+
+		return string
+
 	# See if two operation nodes are equal
 	def __eq__(self, other):
 		if type(other) == type(self):
 			return (self.left == other.left) and (self.right == other.right)
 		return False
 
-	# Return a Infix Notation string representing the operation
-	def toInfixNotation(self):
-		lstring = self.left.toInfixNotation()
-		rstring = self.right.toInfixNotation()
-		string = ''
-		if Operation in type(self.left).__bases__ and self.weight > self.left.weight:
-			string += '(' + lstring + ')'
-		else:
-			string += lstring
-
-		string += ' ' + self.symbol + ' '
-		if Operation in type(self.right).__bases__ and self.weight > self.right.weight:
-			string += '(' + rstring + ')'
-		else:
-			string += rstring
-
-		return string
-
-	# Return a Polish Notation string of the operation
-	def toPolishNotation(self):
-		lstring = self.left.toPolishNotation()
-		rstring = self.right.toPolishNotation()
-		string = self.symbol + ' '
-		if Operation in type(self.left).__bases__ and self.weight > self.left.weight:
-			string += '(' + lstring + ')'
-		else:
-			# Pull off the operator if the left child has the same type
-			if type(self) == type(self.left):
-				string += lstring[2:]
-			else:
-				string += lstring
-		string += ' '
-		if Operation in type(self.right).__bases__ and self.weight > self.right.weight:
-			string += '(' + rstring + ')'
-		else:
-			# Pull off the operator if the right child has the same type
-			if type(self) == type(self.right):
-				string += rstring[2:]
-			else:
-				string += rstring
-		
-		return string
-
-	# Return a Reverse Polish Notation string of the operation
-	def toReversePolishNotation(self):
-		lstring = self.left.toReversePolishNotation()
-		rstring = self.right.toReversePolishNotation()
-		string = ''
-		if Operation in type(self.left).__bases__ and self.weight > self.left.weight:
-			string += '(' + lstring + ')'
-		else:
-			# Pull off the operator if the left child has the same type
-			if type(self) == type(self.left):
-				string += lstring[:-2]
-			else:
-				string += lstring
-		string += ' '
-		if Operation in type(self.right).__bases__ and self.weight > self.right.weight:
-			string += '(' + rstring + ')'
-		else:
-			# Pull off the operator if the right child has the same type
-			if type(self) == type(self.right):
-				string += rstring[:-2]
-			else:
-				string += rstring
-		
-		string += ' ' + self.symbol
-
-		return string
-		#return '(' + self.left.toReversePolishNotation() + ' ' + self.right.toReversePolishNotation() + ' ' + self.symbol + ' )'
-
 	# Return the length of the node
 	def __len__(self):
-		return len(self.left) + len(self.right)
+		if self.arity == 1:
+			return len(self.left)
+		else:
+			return len(self.left) + len(self.right)
 
 	# Return a string representation of the node
 	def __str__(self):
-		return '[ ' + self.left.__str__() + ' ' + self.symbol + ' ' + self.right.__str__() + ' ]'
+		# Unary operators
+		if self.arity == 1:
+			return '[ ' + self.left.__str__() + ' ' + self.symbol + ' ]'
+		# Binary operatorys
+		else:
+			return '[ ' + self.left.__str__() + ' ' + self.symbol + ' ' + self.right.__str__() + ' ]'
 
 # Add two nodes together
 class Plus(Operation):
@@ -683,18 +753,10 @@ class Times(Operation):
 			rstring = '(' + rstring + ')'
 
 		# Multiplication of variables is usually written with the variables adjacent to each other
-		if not (type(self.left).__name__ == 'Value' and type(self.right).__name__ == 'Value'):
+		if type(self.left).__name__ == 'Variable' or type(self.right).__name__ == 'Variable':
 			return lstring + rstring
 		else:
 			return lstring + ' * ' + rstring
-
-	# Return a string representation of the operation
-	def __str__(self):
-		# Multiplication of variables is usually written with the variables adjacent to each other
-		if type(self.left).__name__ == 'Variable' and type(self.right).__name__ == 'Variable':
-			return '[ ' + self.left.name + self.right.name + ' ]'
-		else:
-			return '[ ' + self.left.__str__() + ' * ' + self.right.__str__() + ' ]'
 
 # Divide two nodes
 class Divide(Operation):
@@ -807,6 +869,46 @@ class Exponent(Operation):
 		else:
 			raise NodeException('Node does not have enough children.')
 
+# Calculate the factorial of a node
+# ** This is an unary operator **
+class Factorial(Operation):
+	# Initialize the node
+	def __init__(self):
+		super(Factorial,self).__init__()
+		self.weight = 4
+		self.symbol = '!'
+		self.arity = 1
+
+	# Add a child to the node
+	def addChild(self, child):
+		if self.left == None:
+			self.left = child
+			child.parent = self
+		else:
+			raise NodeException('Node already has one child.')
+	
+	# Remove a child from the node
+	def removeChild(self):
+		if self.left != None:
+			c = self.left
+			self.left = None
+			c.parent = None
+			return c
+		else:
+			raise NodeException('Node has no children to remove.')
+
+	# Evaluate the node
+	def evaluate(self):
+		if self.left != None and self.right == None:
+			cvalue = self.left.evaluate()
+			# Right now factorial is only defined for the natural numbers
+			if cvalue >= 0 and cvalue == int(cvalue):
+				return math.factorial(cvalue)
+			else:
+				raise EvalException('Cannot compute the factorial of negative numbers or non-integers.')
+		else:
+			raise NodeException('Node does not have enough children.')
+
 # Return an object of the correct type given the symbol representing an operation
 def getOperation(operation_symbol):
 	if operation_symbol == '+':
@@ -819,6 +921,8 @@ def getOperation(operation_symbol):
 		return Divide()
 	elif operation_symbol == '^':
 		return Exponent()
+	elif operation_symbol == '!':
+		return Factorial()
 	else:
 		raise ParseError('Unknown operation "' + operation_symbol + '"')
 
