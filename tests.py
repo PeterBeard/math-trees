@@ -210,6 +210,29 @@ class TestExponentiation(unittest.TestCase):
 		self.tree.parse('-4^0.5')
 		self.assertAlmostEqual(self.tree.evaluate(), cmath.sqrt(-4))
 
+# Tests for the factorial operator
+class TestFactorial(unittest.TestCase):
+	def setUp(self):
+		self.tree = expressionparse.Tree()
+	# Test factorial of a positive int
+	def test_pos_int(self):
+		self.tree.parse('3!')
+		self.assertEqual(self.tree.evaluate(), 6)
+	# Test factorial of 0
+	def test_zero(self):
+		self.tree.parse('0!')
+		self.assertEqual(self.tree.evaluate(), 1)
+	# Test factorial of a negative int
+	def test_neg_int(self):
+		self.tree.parse('-1!')
+		with self.assertRaises(expressionparse.EvalException):
+			self.tree.evaluate()
+	# Test factorial of a non-int
+	def test_non_int(self):
+		self.tree.parse('1.5!')
+		with self.assertRaises(expressionparse.EvalException):
+			self.tree.evaluate()
+
 # Tests for parentheses
 class TestParentheses(unittest.TestCase):
 	def setUp(self):
