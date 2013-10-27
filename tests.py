@@ -497,6 +497,19 @@ class TestFactoring(unittest.TestCase):
 		self.factored_tree.parse('(y/z)^x')
 		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
 
+# Make sure the parser can handle complex expressions
+class TestParser(unittest.TestCase):
+	def setUp(self):
+		self.tree = expressionparse.Tree()
+	# What if the whole expression is in parentheses
+	def testParens(self):
+		self.tree.parse('(1+1)')
+		self.assertEqual(self.tree.evaluate(), 2)
+	# Test multiple sets of nested parentheses
+	def testParenNesting(self):
+		self.tree.parse('(1+(2*(1+1))-(5*(4-2/(1-2))))+3')
+		self.assertEqual(self.tree.evaluate(), -22)
+
 # Run the tests
 unittest.main()
 
