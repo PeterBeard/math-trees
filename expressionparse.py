@@ -109,6 +109,7 @@ class Tree(Node):
 		# Break the expression up into its subexpressions, recursively parsing them as we go
 		for i in range(0,len(expression)):
 			char = expression[i]
+			end_index = start_index
 			if char == '(':
 				if level == 0:
 					start_index = i+1
@@ -128,81 +129,92 @@ class Tree(Node):
 				subtree.parse(expression[start_index:end_index])
 				subexpressions.append(subtree.root)
 				start_index = end_index
+				# Skip to the end of the parenthetical
+				i = end_index
 		# Were there any unmatched parentheses?
 		if level != 0:
 			raise ParseException('Unmatched parentheses.')
-		# Parse the top-level expression
-		for subexp in subexpressions:
-			# Invalid character
-			if subexp not in operations and subexp not in digits and Node not in inspect.getmro(type(subexp)):
-				raise ParseException('Invalid subexpression: ' + str(subexp))
-			# Add the digit to the current value
-			if subexp in digits or (subexp in operations and len(curr_value) == 0 and curr_op.arity == 2):
-				curr_value.append(subexp)
-			# Add the operation to the parse tree
-			elif subexp in operations:
-				# Get an object to represent the operation
-				next_op = getOperation(subexp)
-				# Add the current value to the current node
-				if curr_op.weight > 0 and curr_op.arity != 1:
-					curr_op.addChild(curr_value)
-					curr_value = Value()
-				# If the current value is set (i.e. this is the first operation we've found), add it to the next operation and re-root the tree
-				if len(curr_value) > 0:
-					curr_op = next_op
-					curr_op.addChild(curr_value)
-					self.root = curr_op
-					curr_value = Value()
-				# The value was already assigned to the current node, so figure out where to put the next node in the tree
-				else:
-					if curr_op.arity == 1:
-						# Add the unary operator as a child of the next operation regardless of their relative weights; what matters is the weight of the parent compared to the next node
-						p = curr_op.parent
-						if p != None:
-							if next_op.weight > p.weight:
-								c = p.removeChild()
-								p.addChild(next_op)
+		# A single subexpression is easy to parse
+		if len(subexpressions) == 1:
+			if subexpressions[0] in digits:
+				self.root = Value(subexpressions[0])
+			elif Operation in type(subexpressions[0]).__bases__ or Node in type(subexpressions[0]).__bases__:
+				self.root = subexpressions[0]
+			else:
+				raise ParseError('Unknown node type: ' + str(type(subexpressions[0])))
+		else:
+			# Parse the top-level expression
+			for subexp in subexpressions:
+				# Invalid character
+				if subexp not in operations and subexp not in digits and Node not in inspect.getmro(type(subexp)):
+					raise ParseException('Invalid subexpression: ' + str(subexp))
+				# Add the digit to the current value
+				if subexp in digits or (subexp in operations and len(curr_value) == 0 and curr_op.arity == 2):
+					curr_value.append(subexp)
+				# Add the operation to the parse tree
+				elif subexp in operations:
+					# Get an object to represent the operation
+					next_op = getOperation(subexp)
+					# Add the current value to the current node
+					if curr_op.weight > 0 and curr_op.arity != 1:
+						curr_op.addChild(curr_value)
+						curr_value = Value()
+					# If the current value is set (i.e. this is the first operation we've found), add it to the next operation and re-root the tree
+					if len(curr_value) > 0:
+						curr_op = next_op
+						curr_op.addChild(curr_value)
+						self.root = curr_op
+						curr_value = Value()
+					# The value was already assigned to the current node, so figure out where to put the next node in the tree
+					else:
+						if curr_op.arity == 1:
+							# Add the unary operator as a child of the next operation regardless of their relative weights; what matters is the weight of the parent compared to the next node
+							p = curr_op.parent
+							if p != None:
+								if next_op.weight > p.weight:
+									c = p.removeChild()
+									p.addChild(next_op)
+									next_op.addChild(c)
+									self.root = p
+								elif next_op.weight == p.weight:
+									c = p.removeChild()
+									p.addChild(next_op)
+									next_op.addChild(c)
+								else:
+									next_op.addChild(self.root)
+									self.root = next_op
+							else:
+								next_op.addChild(curr_op)
+								self.root = next_op
+						elif next_op.arity == 1:
+							# Add the unary operator as a child of the current operation regardless of their relative weights; what matters is the weight of the parent compared to the next node
+							next_op.addChild(curr_op.removeChild())
+							curr_op.addChild(next_op)
+						else:
+							# If the next node is heavier than the current one (e.g. * v. +), add it as a child of the current node and make the current node the root of the tree
+							if next_op.weight > curr_op.weight:
+								c = curr_op.removeChild()
+								curr_op.addChild(next_op)
 								next_op.addChild(c)
-								self.root = p
-							elif next_op.weight == p.weight:
-								c = p.removeChild()
-								p.addChild(next_op)
+								self.root = curr_op
+							# If the current and next nodes have the same weight, add the next node as a child of the current one -- note that this is the same as what we do when the next node is heavier BUT we do NOT re-root the tree
+							elif next_op.weight == curr_op.weight:
+								c = curr_op.removeChild()
+								curr_op.addChild(next_op)
 								next_op.addChild(c)
 							else:
 								next_op.addChild(self.root)
 								self.root = next_op
-						else:
-							next_op.addChild(curr_op)
-							self.root = next_op
-					elif next_op.arity == 1:
-						# Add the unary operator as a child of the current operation regardless of their relative weights; what matters is the weight of the parent compared to the next node
-						next_op.addChild(curr_op.removeChild())
-						curr_op.addChild(next_op)
-					else:
-						# If the next node is heavier than the current one (e.g. * v. +), add it as a child of the current node and make the current node the root of the tree
-						if next_op.weight > curr_op.weight:
-							c = curr_op.removeChild()
-							curr_op.addChild(next_op)
-							next_op.addChild(c)
-							self.root = curr_op
-						# If the current and next nodes have the same weight, add the next node as a child of the current one -- note that this is the same as what we do when the next node is heavier BUT we do NOT re-root the tree
-						elif next_op.weight == curr_op.weight:
-							c = curr_op.removeChild()
-							curr_op.addChild(next_op)
-							next_op.addChild(c)
-						else:
-							next_op.addChild(self.root)
-							self.root = next_op
-						
-					curr_op = next_op
-			# The current subexpression is a node; add it to the tree as-is
-			else:
-				curr_value = subexp
-		# Add the last value to the tree
-		if curr_op.arity == 2:
-			curr_op.addChild(curr_value)
-		if self.root == None:
-			self.root = curr_op
+							
+						curr_op = next_op
+				# The current subexpression is a node or variable; add it to the tree as-is
+				else:
+					curr_value = subexp
+			# Add the last value to the tree
+			if curr_op.arity == 2 and curr_op != subexpressions[0]:
+				curr_op.addChild(curr_value)
+			if self.root == None:
+				self.root = curr_op
 
 	# Set the value of a variable in the tree
 	def setVariable(self, name, value):
