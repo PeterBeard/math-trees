@@ -28,7 +28,14 @@ class NodeException(Exception):
 	def __str__(self):
 		return repr(self.value)
 
-# Exception that raised when parsing an expression
+# Exception raised when tokenizing an expression
+class TokenizeException(Exception):
+	def __init__(self, value):
+		self.value = value
+	def __str__(self):
+		return repr(self.value)
+
+# Exception that's raised when parsing an expression
 class ParseException(Exception):
 	def __init__(self, value):
 		self.value = value
@@ -65,6 +72,43 @@ class Node(object):
 	# Make a string representation of the node
 	def __str__(self):
 		return 'Empty Node (' + type(self).__name__ + ')'
+
+# A class to tokenize input strings and feed the tokens to the parser
+class Tokenizer(object):
+	# Initialize the tokenizer and tokenize the string
+	def __init__(self, string):
+		self.tokens = []
+		# The characters that we recognize
+		numbers = '01234567890.'
+		operators = '+-*/^!'
+		# Iterate over the string and create tokens of the appropriate type
+		curr_value = Value()
+		for i in range(0,len(string)):
+			char = string[i]
+			if char in '()':
+				pass
+			elif char in numbers:
+				curr_value.append(char)
+				# Last value in the string
+				if i == len(string)-1:
+					self.pushToken(curr_value)
+			elif char in operators:
+				self.pushToken(curr_value)
+				curr_value = Value()
+				self.pushToken(getOperation(char))
+			else:
+				self.pushToken(Variable(char))
+
+	# Return the next token in the list
+	def getToken(self):
+		return self.tokens.pop()
+	# Return the next token in the list without removing it
+	def peekToken(self):
+		return self.tokens[-1]
+	# Add a token to the end of the list
+	def pushToken(self, token):
+		self.tokens.append(token)
+			
 
 # A class representing an expression tree. Contains logic for parsing strings.
 # TODO: This class is probably not that different from the Node class, so they should probably be merged or this class should at least be simplified.
