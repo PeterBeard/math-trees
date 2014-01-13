@@ -239,11 +239,11 @@ class TestParentheses(unittest.TestCase):
 		self.tree = expressionparse.Tree()
 	# Test for unmatched left parens
 	def test_unmatched_lparen(self):
-		with self.assertRaises(expressionparse.ParseException):
+		with self.assertRaises(expressionparse.TokenizeException):
 			self.tree.parse('1+(2+3')
 	# Test for unmatched right parens
 	def test_unmatched_rparen(self):
-		with self.assertRaises(expressionparse.ParseException):
+		with self.assertRaises(expressionparse.TokenizeException):
 			self.tree.parse('1+(2+3))')
 	# Make sure parenthetical expressions are evaluated first
 	def test_oop_parens(self):
@@ -497,10 +497,23 @@ class TestFactoring(unittest.TestCase):
 		self.factored_tree.parse('(y/z)^x')
 		self.assertEqual(self.tree.root.factor(), self.factored_tree.root)
 
-# Make sure the parser can handle complex expressions
+# Make sure the parser can handle various edge case expressions
 class TestParser(unittest.TestCase):
 	def setUp(self):
 		self.tree = expressionparse.Tree()
+	# Entire expression is a single int
+	def testIsInt(self):
+		self.tree.parse('1')
+		self.assertEqual(self.tree.evaluate(), 1)
+	# Entire expression is a single float
+	def testIsFloat(self):
+		self.tree.parse('1.5')
+		self.assertEqual(self.tree.evaluate(), 1.5)
+	# Entire expression is a single variable
+	def testIsVariable(self):
+		self.tree.parse('x')
+		self.tree.setVariable('x',1)
+		self.assertEqual(self.tree.evaluate(), 1)
 	# What if the whole expression is in parentheses
 	def testParens(self):
 		self.tree.parse('(1+1)')

@@ -17,9 +17,9 @@
 # You should have received a copy of the GNU General Public License
 # along with Expressionparse. If not, see <http://www.gnu.org/licenses/>.
 
-import inspect
 import math
 import re
+import copy
 
 # A general node-related exception
 class NodeException(Exception):
@@ -75,9 +75,38 @@ class Node(object):
 
 # A class to tokenize input strings and feed the tokens to the parser
 class Tokenizer(object):
+	# Some static constants
+	OPENPAREN = '('
+	CLOSEPAREN = ')'
 	# Initialize the tokenizer and tokenize the string
 	def __init__(self, string):
 		self.tokens = []
+		# First, strip out whitespace from the string
+		string = string.replace(' ','')
+		# Next replace adjacent parentheses with explicit multiplications so we can parse more easily
+		string = string.replace(')(',')*(')
+		# Check for unmatches parentheses
+		level = 0
+		for char in string:
+			if char == '(':
+				level += 1
+			elif char == ')':
+				level -= 1
+		if level != 0:
+			raise TokenizeException('Unmatched parenthesis.')
+		# Make variable multiplications written as adjacent characters (e.g. 3x, xy) explicit
+		p = re.compile('(\d+)(\w)')
+		string = p.sub(r'\1*\2',string)
+		p = re.compile('(\w)(\d+)')
+		string = p.sub(r'\1*\2',string)
+		p = re.compile('(\w)(?=\w)')
+		string = p.sub(r'\1*',string)
+		# Multiplication of parenthetical expression can also be written implicitly as 'x(...)' or '(...)x'
+		# Make these explicit here
+		p = re.compile('([\w\d]+)\(')
+		string = p.sub(r'\1*(',string)
+		p = re.compile('\)([\w\d]+)')
+		string = p.sub(r')*\1',string)
 		# The characters that we recognize
 		numbers = '01234567890.'
 		operators = '+-*/^!'
@@ -85,26 +114,42 @@ class Tokenizer(object):
 		curr_value = Value()
 		for i in range(0,len(string)):
 			char = string[i]
-			if char in '()':
-				pass
-			elif char in numbers:
+			if char == Tokenizer.OPENPAREN:
+				self.pushToken(char)
+			elif char == Tokenizer.CLOSEPAREN:
+				if len(curr_value) > 0:
+					self.pushToken(curr_value)
+					curr_value = Value()
+				self.pushToken(char)
+			elif char in numbers or (char == '-' and string[i+1] in numbers and len(curr_value) == 0 and string[i-1] != Tokenizer.CLOSEPAREN):
 				curr_value.append(char)
 				# Last value in the string
 				if i == len(string)-1:
 					self.pushToken(curr_value)
 			elif char in operators:
-				self.pushToken(curr_value)
-				curr_value = Value()
+				if len(curr_value) > 0:
+					self.pushToken(curr_value)
+					curr_value = Value()
 				self.pushToken(getOperation(char))
 			else:
+				if len(curr_value) > 0:
+					self.pushToken(curr_value)
+					curr_value = Value()
 				self.pushToken(Variable(char))
-
-	# Return the next token in the list
+	# Return the next token in the list (at the beginning)
 	def getToken(self):
-		return self.tokens.pop()
+		if len(self.tokens) > 0:
+			return self.tokens.pop(0)
+		else:
+			return None
+
 	# Return the next token in the list without removing it
 	def peekToken(self):
-		return self.tokens[-1]
+		if len(self.tokens) > 0:
+			return self.tokens[0]
+		else:
+			return None
+
 	# Add a token to the end of the list
 	def pushToken(self, token):
 		self.tokens.append(token)
@@ -119,150 +164,101 @@ class Tree(Node):
 
 	# Parse a string expression
 	def parse(self, expression):
+		# TODO: This function should be able to detect the type of notation and choose the correct parser
 		self.parseInfixNotation(expression)
 
 	# Parse a string expression written using Infix Notation
 	def parseInfixNotation(self, expression):
-		operations = ['+','-','*','/','^','!']
-		digits = ['0','1','2','3','4','5','6','7','8','9','.']
-		curr_value = Value()
-		curr_op = Operation()
-		next_op = Operation()
-		subexpressions = []
-		# Find and parse top-level subexpressions (grouped by parentheses)
-		level = 0
-		start_index = 0
-		end_index = 0
-		# First, strip out whitespace from the expression
-		expression = expression.replace(' ','')
-		# Next replace adjacent parentheses with explicit multiplications so we can parse more easily
-		expression = expression.replace(')(',')*(')
-		# Make variable multiplications written as adjacent characters (e.g. 3x, xy) explicit
-		p = re.compile('(\d+)(\w)')
-		expression = p.sub(r'\1*\2',expression)
-		p = re.compile('(\w)(\d+)')
-		expression = p.sub(r'\1*\2',expression)
-		p = re.compile('(\w)(?=\w)')
-		expression = p.sub(r'\1*',expression)
-		# Multiplication of parenthetical expression can also be written implicitly as 'x(...)' or '(...)x'
-		# Make these explicit here
-		p = re.compile('([\w\d]+)\(')
-		expression = p.sub(r'\1*(',expression)
-		p = re.compile('\)([\w\d]+)')
-		expression = p.sub(r')*\1',expression)
-		# Break the expression up into its subexpressions, recursively parsing them as we go
-		for i in range(0,len(expression)):
-			char = expression[i]
-			end_index = start_index
-			if char == '(':
-				if level == 0:
-					start_index = i+1
-				level = level + 1
-			elif char == ')':
-				level = level - 1
-				if level == 0:
-					end_index = i
-			elif level == 0:
-				if char in digits or char in operations:
-					subexpressions.append(char)
+		# Tokenize the expression
+		tokenizer = Tokenizer(expression)
+		# Iterate over the tokens
+		tokenIndex = 0
+		token = 0
+		curr_value = None
+		subtree_root = Operation()
+		prev_op = None
+		curr_op = None
+		self.root = Operation()
+		paren_stack = []
+		while token is not None:
+			tokenIndex += 1
+			token = tokenizer.getToken()
+			# No tokens left
+			if token is None:
+				# If there are no operations, the current value must be the entire tree
+				if len(subtree_root) == 0:
+					subtree_root = curr_value
+				elif curr_value is not None and len(subtree_root) < 2:
+					subtree_root.addChild(curr_value)
+				break
+			# Parse the token
+			if token == Tokenizer.OPENPAREN:
+				paren_stack.append(copy.deepcopy(subtree_root))
+				subtree_root = Operation()
+				prev_op = Operation()
+				curr_op = Operation()
+			elif token == Tokenizer.CLOSEPAREN:
+				paren_op = paren_stack.pop()
+				# Insert the parenthetical expression in the tree
+				if len(paren_op) < 2:
+					paren_op.addChild(subtree_root)
 				else:
-					subexpressions.append(Variable(char))
-			# Parse the subexpression and add it to the list
-			if level == 0 and start_index != end_index:
-				subtree = Tree()
-				subtree.parse(expression[start_index:end_index])
-				subexpressions.append(subtree.root)
-				start_index = end_index
-				# Skip to the end of the parenthetical
-				i = end_index
-		# Were there any unmatched parentheses?
-		if level != 0:
-			raise ParseException('Unmatched parentheses.')
-		# A single subexpression is easy to parse
-		if len(subexpressions) == 1:
-			if subexpressions[0] in digits:
-				self.root = Value(subexpressions[0])
-			elif Operation in type(subexpressions[0]).__bases__ or Node in type(subexpressions[0]).__bases__:
-				self.root = subexpressions[0]
-			else:
-				raise ParseError('Unknown node type: ' + str(type(subexpressions[0])))
-		else:
-			# Parse the top-level expression
-			for subexp in subexpressions:
-				# Invalid character
-				if subexp not in operations and subexp not in digits and Node not in inspect.getmro(type(subexp)):
-					raise ParseException('Invalid subexpression: ' + str(subexp))
-				# Add the digit to the current value
-				if subexp in digits or (subexp in operations and len(curr_value) == 0 and curr_op.arity == 2):
-					curr_value.append(subexp)
-				# Add the operation to the parse tree
-				elif subexp in operations:
-					# Get an object to represent the operation
-					next_op = getOperation(subexp)
-					# Add the current value to the current node
-					if curr_op.weight > 0 and curr_op.arity != 1:
-						curr_op.addChild(curr_value)
-						curr_value = Value()
-					# If the current value is set (i.e. this is the first operation we've found), add it to the next operation and re-root the tree
-					if len(curr_value) > 0:
-						curr_op = next_op
-						curr_op.addChild(curr_value)
-						self.root = curr_op
-						curr_value = Value()
-					# The value was already assigned to the current node, so figure out where to put the next node in the tree
+					paren_op.addWhereOpen(subtree_root)
+				# Re-root the tree and continue parsing
+				subtree_root = paren_op
+				prev_op = subtree_root
+			elif isinstance(token, Variable) or isinstance(token, Value):
+				if curr_value is None:
+					curr_value = token
+					if (tokenizer.peekToken() is None or tokenizer.peekToken() == Tokenizer.CLOSEPAREN) and prev_op is not None:
+						prev_op.addChild(curr_value)
+						curr_value = None
+				#else:
+				#	raise ParseException("Too many values at token " + str(tokenIndex))
+			elif isinstance(token, Operation):
+				if curr_value == None and subtree_root.symbol == '?':
+					token.addChild(subtree_root.left)
+					subtree_root = token
+					prev_op = token
+				elif prev_op is not None and len(prev_op) > 0:
+					if curr_value != None:
+						prev_op.addChild(curr_value)
+						curr_value = None
+					curr_op = token
+					# Determine parent-child relationship based on operation weights
+					# If the next node is heavier than the current one (e.g. * v. +), add it as a child of the current node and make the current node the root of the tree
+					if curr_op.weight > prev_op.weight:
+						c = prev_op.removeChild()
+						prev_op.addChild(curr_op)
+						curr_op.addChild(c)
+						subtree_root = prev_op
+					# If the current and next nodes have the same weight, add the next node as a child of the current one -- note that this is the same as what we do when the next node is heavier BUT we do NOT re-root the tree
+					elif curr_op.weight == prev_op.weight:
+						c = prev_op.removeChild()
+						prev_op.addChild(curr_op)
+						curr_op.addChild(c)
+					# If the next node is lighter than the current one, add the current node as a child of the next one and make the next one the root of the tree
 					else:
-						if curr_op.arity == 1:
-							# Add the unary operator as a child of the next operation regardless of their relative weights; what matters is the weight of the parent compared to the next node
-							p = curr_op.parent
-							if p != None:
-								if next_op.weight > p.weight:
-									c = p.removeChild()
-									p.addChild(next_op)
-									next_op.addChild(c)
-									self.root = p
-								elif next_op.weight == p.weight:
-									c = p.removeChild()
-									p.addChild(next_op)
-									next_op.addChild(c)
-								else:
-									next_op.addChild(self.root)
-									self.root = next_op
-							else:
-								next_op.addChild(curr_op)
-								self.root = next_op
-						elif next_op.arity == 1:
-							# Add the unary operator as a child of the current operation regardless of their relative weights; what matters is the weight of the parent compared to the next node
-							next_op.addChild(curr_op.removeChild())
-							curr_op.addChild(next_op)
-						else:
-							# If the next node is heavier than the current one (e.g. * v. +), add it as a child of the current node and make the current node the root of the tree
-							if next_op.weight > curr_op.weight:
-								c = curr_op.removeChild()
-								curr_op.addChild(next_op)
-								next_op.addChild(c)
-								self.root = curr_op
-							# If the current and next nodes have the same weight, add the next node as a child of the current one -- note that this is the same as what we do when the next node is heavier BUT we do NOT re-root the tree
-							elif next_op.weight == curr_op.weight:
-								c = curr_op.removeChild()
-								curr_op.addChild(next_op)
-								next_op.addChild(c)
-							else:
-								next_op.addChild(self.root)
-								self.root = next_op
-							
-						curr_op = next_op
-				# The current subexpression is a node or variable; add it to the tree as-is
+						curr_op.addChild(subtree_root)
+						subtree_root = curr_op
+					prev_op = curr_op
 				else:
-					curr_value = subexp
-			# Add the last value to the tree
-			if curr_op.arity == 2 and curr_op != subexpressions[0]:
-				curr_op.addChild(curr_value)
-			if self.root == None:
-				self.root = curr_op
-
+					prev_op = token
+					prev_op.addChild(curr_value)
+					subtree_root = prev_op
+					curr_value = None
+		# An undefined operation with only one child can be simplified. Let's.
+		if isinstance(subtree_root, Operation) and subtree_root.symbol == '?' and subtree_root.right == None:
+			self.root = subtree_root.left
+		else:
+			self.root = subtree_root
+	
 	# Set the value of a variable in the tree
 	def setVariable(self, name, value):
-		self.root.setVariable(name, value)
+		if isinstance(self.root, Operation):
+			self.root.setVariable(name, value)
+		elif isinstance(self.root, Variable) and self.root.name == name:
+			self.root.set(value)
 
 	# Try to simplify the tree
 	def simplify(self):
@@ -350,7 +346,7 @@ class Variable(Node):
 			raise EvalException('Cannot evaluate expressions that contain uninitialized variables.')
 	# Set the value of the variable
 	def set(self, value):
-		if type(value).__name__ == 'Value':
+		if isinstance(value, Value):
 			self.value = value
 		else:
 			self.value = Value(value)
@@ -413,6 +409,30 @@ class Operation(Node):
 		else:
 			raise NodeException('Node has no children to remove.')
 		return node
+	# Find somewhere in this tree to add a child node. Return false if there are no open spots
+	def addWhereOpen(self, child):
+		# Can we have another child?
+		if self.right is None:
+			self.addChild(child)
+			return True
+		else:
+			# Try to add the new child to one of our child nodes
+			if isinstance(self.left, Operation) and isinstance(self.right, Operation):
+				# Try the left node first
+				success = self.left.addWhereOpen(child)
+				# Only try the right node if the left node failed
+				if not success:
+					success = self.right.addWhereOpen(child)
+				return success
+			# Can we insert into the left node?
+			elif isinstance(self.left, Operation):
+				return self.left.addWhereOpen(child)
+			# What about the right node?
+			elif isinstance(self.right, Operation):
+				return self.right.addWhereOpen(child)
+			# There was nowhere to insert another node
+			else:
+				return False
 
 	# Try to factor the node
 	def factor(self):
@@ -432,7 +452,7 @@ class Operation(Node):
 		parent_weight = self.weight
 		child_type = type(self.left).__name__
 		# Make sure the children are both operations, both the same type, and have a greater weight
-		if Operation in type(self.left).__bases__ and type(self.left) == type(self.right) and self.left.weight - self.weight == 1:
+		if isinstance(self.left, Operation) and type(self.left) == type(self.right) and self.left.weight - self.weight == 1:
 			# Get grandchildren
 			llgc = self.left.left
 			lrgc = self.left.right
@@ -526,14 +546,14 @@ class Operation(Node):
 	# Check whether the node contains a certain variable
 	def containsVariable(self, varname):
 		# Is the variable in the left child?
-		if type(self.left).__name__ == 'Variable' and self.left.name == varname:
+		if isinstance(self.left, Variable) and self.left.name == varname:
 			return True
-		elif type(self.left).__name__ != 'Value':
+		elif not isinstance(self.left, Value):
 			return self.left.containsVariable(varname)
 		# Is the variable in the right child?
-		if type(self.right).__name__ == 'Variable' and self.right.name == varname:
+		if isinstance(self.right ,Variable) and self.right.name == varname:
 			return True
-		elif type(self.right).__name__ != 'Value':
+		elif not isinstance(self.right, Value):
 			return self.right.containsVariable(varname)
 		# Didn't find the variable
 		return False
@@ -542,12 +562,12 @@ class Operation(Node):
 	def setVariable(self, name, value):
 		# See if the variable exists in the left and/or right subtrees
 		# Left side
-		if type(self.left).__name__ == 'Variable' and self.left.name == name:
+		if isinstance(self.left, Variable) and self.left.name == name:
 			self.left.set(value)
 		else:
 			self.left.setVariable(name, value)
 		# Right side
-		if type(self.right).__name__ == 'Variable' and self.right.name == name:
+		if isinstance(self.right, Variable) and self.right.name == name:
 			self.right.set(value)
 		else:
 			self.right.setVariable(name, value)
@@ -562,7 +582,7 @@ class Operation(Node):
 		# Unary operators
 		if self.arity == 1:
 			lstring = self.left.toInfixNotation()
-			if Operation in type(self.left).__bases__ and self.weight > self.left.weight:
+			if isinstance(self.left, Operation) and self.weight > self.left.weight:
 				string = '(' + lstring + ')'
 			else:
 				string = lstring
@@ -572,13 +592,13 @@ class Operation(Node):
 			lstring = self.left.toInfixNotation()
 			rstring = self.right.toInfixNotation()
 			string = ''
-			if Operation in type(self.left).__bases__ and self.weight > self.left.weight:
+			if ifInstance(self.left, Operation) and self.weight > self.left.weight:
 				string += '(' + lstring + ')'
 			else:
 				string += lstring
 
 			string += ' ' + self.symbol + ' '
-			if Operation in type(self.right).__bases__ and self.weight > self.right.weight:
+			if isinstance(self.right, Operation) and self.weight > self.right.weight:
 				string += '(' + rstring + ')'
 			else:
 				string += rstring
@@ -590,7 +610,7 @@ class Operation(Node):
 		if self.arity == 1:
 			lstring = self.left.toPolishNotation()
 			string = self.symbol + ' '
-			if Operation in type(self.left).__bases__ and self.weight > self.left.weight:
+			if isinstance(self.left, Operation) and self.weight > self.left.weight:
 				string += '(' + lstring + ')'
 			else:
 				# Pull off the operator if the left child has the same type
@@ -602,7 +622,7 @@ class Operation(Node):
 			lstring = self.left.toPolishNotation()
 			rstring = self.right.toPolishNotation()
 			string = self.symbol + ' '
-			if Operation in type(self.left).__bases__ and self.weight > self.left.weight:
+			if isinstance(self.left, Operation) and self.weight > self.left.weight:
 				string += '(' + lstring + ')'
 			else:
 				# Pull off the operator if the left child has the same type
@@ -611,7 +631,7 @@ class Operation(Node):
 				else:
 					string += lstring
 			string += ' '
-			if Operation in type(self.right).__bases__ and self.weight > self.right.weight:
+			if isinstance(self.right, Operation) and self.weight > self.right.weight:
 				string += '(' + rstring + ')'
 			else:
 				# Pull off the operator if the right child has the same type
@@ -626,7 +646,7 @@ class Operation(Node):
 	def toReversePolishNotation(self):
 		if self.arity == 1:
 			lstring = self.left.toReversePolishNotation()
-			if Operation in type(self.left).__bases__ and self.weight > self.left.weight:
+			if isinstance(self.left, Operation) and self.weight > self.left.weight:
 				string = '(' + lstring + ')'
 			else:
 				# Pull off the operator if the left child has the same type
@@ -639,7 +659,7 @@ class Operation(Node):
 			lstring = self.left.toReversePolishNotation()
 			rstring = self.right.toReversePolishNotation()
 			string = ''
-			if Operation in type(self.left).__bases__ and self.weight > self.left.weight:
+			if isinstance(self.left, Operation) and self.weight > self.left.weight:
 				string += '(' + lstring + ')'
 			else:
 				# Pull off the operator if the left child has the same type
@@ -648,7 +668,7 @@ class Operation(Node):
 				else:
 					string += lstring
 			string += ' '
-			if Operation in type(self.right).__bases__ and self.weight > self.right.weight:
+			if isinstance(self.right, Operation) and self.weight > self.right.weight:
 				string += '(' + rstring + ')'
 			else:
 				# Pull off the operator if the right child has the same type
@@ -669,10 +689,15 @@ class Operation(Node):
 
 	# Return the length of the node
 	def __len__(self):
-		if self.arity == 1:
-			return len(self.left)
-		else:
-			return len(self.left) + len(self.right)
+		left_len = 0
+		right_len = 0
+		# Get the lengths of the non-None children
+		if self.left is not None:
+			left_len = len(self.left)
+		if self.right is not None:
+			right_len = len(self.right)
+		# Return the sum of the lengths
+		return left_len + right_len
 
 	# Return a string representation of the node
 	def __str__(self):
@@ -742,7 +767,7 @@ class Times(Operation):
 		parent_weight = self.weight
 		child_type = type(self.left).__name__
 		# Make sure the children are both operations, both the same type, and have a greater weight
-		if Operation in type(self.left).__bases__ and type(self.left) == type(self.right) and self.left.weight - self.weight == 1:
+		if isinstance(self.left, Operation) and type(self.left) == type(self.right) and self.left.weight - self.weight == 1:
 			if child_type != 'Exponent':
 				return super(Times,self).factor()
 			else:
@@ -802,14 +827,14 @@ class Times(Operation):
 		lstring = self.left.toInfixNotation()
 		rstring = self.right.toInfixNotation()
 		
-		if Operation in type(self.left).__bases__ and self.weight > self.left.weight:
+		if isinstance(self.left, Operation) and self.weight > self.left.weight:
 			lstring = '(' + lstring + ')'
 
-		if Operation in type(self.right).__bases__ and self.weight > self.right.weight:
+		if isinstance(self.right, Operation) and self.weight > self.right.weight:
 			rstring = '(' + rstring + ')'
 
 		# Multiplication of variables is usually written with the variables adjacent to each other
-		if type(self.left).__name__ == 'Variable' or type(self.right).__name__ == 'Variable':
+		if isinstance(self.left, Variable) or isinstance(self.right, Variable):
 			return lstring + rstring
 		else:
 			return lstring + ' * ' + rstring
@@ -845,7 +870,7 @@ class Divide(Operation):
 		parent_weight = self.weight
 		child_type = type(self.left).__name__
 		# Make sure the children are both operations, both the same type, and have a greater weight
-		if Operation in type(self.left).__bases__ and type(self.left) == type(self.right) and self.left.weight - self.weight == 1:
+		if isinstance(self.left, Operation) and type(self.left) == type(self.right) and self.left.weight - self.weight == 1:
 			if child_type != 'Exponent':
 				return super(Divide,self).factor()
 			else:
@@ -980,5 +1005,5 @@ def getOperation(operation_symbol):
 	elif operation_symbol == '!':
 		return Factorial()
 	else:
-		raise ParseError('Unknown operation "' + operation_symbol + '"')
+		raise ParseException('Unknown operation "' + operation_symbol + '"')
 
