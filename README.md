@@ -31,8 +31,9 @@ Once an expression has been parsed, various output options are available (all re
 
 * Polish Notation (`Tree.toPolishNotation`)
 * Infix Notation (`Tree.toInfixNotation`)
-* Reverse Polish Notation (`Tree.toReversePolishNotation`) 
+* Reverse Polish Notation (`Tree.toReversePolishNotation`)
 
+```python
     >>> t = expressionparse.Tree()
     >>> t.parse('2*2+1')
     >>> print t.toPolishNotation()
@@ -46,25 +47,30 @@ Once an expression has been parsed, various output options are available (all re
     >>> print t.toReversePolishNotation()
     
     2 2 * 1 +
+```
 
 Trees and nodes can also be stringified using the str() operator. This will output using infix notation but with explicit delineation of the various nodes using square brackets.
 
+```python
     >>> t = expressionparse.Tree()
     >>> t.parse('2*2+1')
     >>> print t
     
     [ [ 2 * 2 ] + 1 ]
+```
 
 Evaluating Expressions
 ----------------------
 
 Expressions containing only numbers can be evaluated using the Tree.evaluate method. If an error is encountered during evaluation, an EvalException will be raised.
 
+```python
     >>> t = expressionparse.Tree()
     >>> t.parse('1+2')
     >>> print t.evaluate()
     
     3.0
+```
 
 Variables
 ---------
@@ -73,9 +79,11 @@ The math-trees library can parse expressions containing variables with single-ch
 
 Expressions containing variables cannot be evaluated unless the values of all variables have been set using the Tree.setVariable method.
 
+```python
     >>> t = expressionparse.Tree()
     >>> t.parse('x+2')
     >>> t.setVariable('x',1)
     >>> print t.evaluate()
     
     3.0
+```
