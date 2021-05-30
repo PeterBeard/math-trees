@@ -628,7 +628,7 @@ class Operation(Node):
 			lstring = self.left.toInfixNotation()
 			rstring = self.right.toInfixNotation()
 			string = ''
-			if ifInstance(self.left, Operation) and self.weight > self.left.weight:
+			if isinstance(self.left, Operation) and self.weight > self.left.weight:
 				string += '(' + lstring + ')'
 			else:
 				string += lstring
