@@ -21,63 +21,80 @@ import math
 import re
 import copy
 
+
 # A general node-related exception
 class NodeException(Exception):
 	def __init__(self, value):
 		self.value = value
+
 	def __str__(self):
 		return repr(self.value)
+
 
 # Exception raised when tokenizing an expression
 class TokenizeException(Exception):
 	def __init__(self, value):
 		self.value = value
+
 	def __str__(self):
 		return repr(self.value)
+
 
 # Exception that's raised when parsing an expression
 class ParseException(Exception):
 	def __init__(self, value):
 		self.value = value
+
 	def __str__(self):
 		return repr(self.value)
+
 
 # Exception that's raised when evaluating an expression
 class EvalException(Exception):
 	def __init__(self, value):
 		self.value = value
+
 	def __str__(self):
 		return repr(self.value)
+
 
 # The base node class. Implements evaluation and stringification functions.
 class Node(object):
 	# Initialize the node
 	def __init__(self):
 		pass
+
 	# Set a variable
 	def setVariable(self, name, value):
 		return None
+
 	# Evaluate the node
 	def evaluate(self):
 		return None
+
 	# Return a nice-looking string representing the node
 	def toInfixNotation(self):
 		return self.__str__()
+
 	# Return a Polish notation string of the node
 	def toPolishNotation(self):
 		return self.__str__()
+
 	# Return a Reverse Polish notation string of the node
 	def toReversePolishNotation(self):
 		return self.__str__()
+
 	# Make a string representation of the node
 	def __str__(self):
 		return 'Empty Node (' + type(self).__name__ + ')'
+
 
 # A class to tokenize input strings and feed the tokens to the parser
 class Tokenizer(object):
 	# Some static constants
 	OPENPAREN = '('
 	CLOSEPAREN = ')'
+
 	# Initialize the tokenizer and tokenize the string
 	def __init__(self, string):
 		self.tokens = []
@@ -136,6 +153,7 @@ class Tokenizer(object):
 					self.pushToken(curr_value)
 					curr_value = Value()
 				self.pushToken(Variable(char))
+
 	# Return the next token in the list (at the beginning)
 	def getToken(self):
 		if len(self.tokens) > 0:
@@ -153,7 +171,7 @@ class Tokenizer(object):
 	# Add a token to the end of the list
 	def pushToken(self, token):
 		self.tokens.append(token)
-			
+
 
 # A class representing an expression tree. Contains logic for parsing strings.
 # TODO: This class is probably not that different from the Node class, so they should probably be merged or this class should at least be simplified.
@@ -303,31 +321,39 @@ class Tree(Node):
 			return self.root == other.root
 		return False
 
+
 # A class representing a numeric value, e.g. 5, -7, 2.1, etc.
 class Value(Node):
 	# Initialize the node
 	def __init__(self, val=''):
 		self.value = str(val)
+
 	# Append a digit to the value
 	def append(self, digit):
 		self.value = self.value + str(digit)
+
 	# Simplify the node
 	def simplify(self):
 		return self
+
 	# Evaluate the node
 	def evaluate(self):
 		return float(self.value)
+
 	# The length of the value
 	def __len__(self):
 		return len(self.value)
+
 	# See if two values are equal
 	def __eq__(self, other):
 		if isinstance(other, Value):
 			return self.value == other.value
 		return False
+
 	# Return a string representation of the value
 	def __str__(self):
 		return self.value
+
 
 # Class representing a variable, e.g. x
 class Variable(Node):
@@ -335,24 +361,29 @@ class Variable(Node):
 	def __init__(self, name=''):
 		self.name = str(name)
 		self.value = Value()
+
 	# Simplify the node
 	def simplify(self):
 		return self
+
 	# Evaluate the node
 	def evaluate(self):
 		try:
 			return self.value.evaluate()
 		except:
 			raise EvalException('Cannot evaluate expressions that contain uninitialized variables.')
+
 	# Set the value of the variable
 	def set(self, value):
 		if isinstance(value, Value):
 			self.value = value
 		else:
 			self.value = Value(value)
+
 	# Unset the value of the variable
 	def unset(self):
 		self.value = Value()
+
 	# Compare two variables
 	def __eq__(self, other):
 		if type(other) == type(self):
@@ -365,9 +396,11 @@ class Variable(Node):
 				return False
 		else:
 			return False
+
 	# The length of the value
 	def __len__(self):
 		return len(self.name)
+
 	# Return a string representation of the value
 	def __str__(self):
 		try:
@@ -375,6 +408,7 @@ class Variable(Node):
 			return '{' + self.name + '=' + str(self.value) + '}'
 		except:
 			return self.name
+
 
 # A class representing a mathematical operation, e.g. plus, minus, etc.
 class Operation(Node):
@@ -386,6 +420,7 @@ class Operation(Node):
 		self.weight = 0			# Default weight is 0
 		self.symbol = '?'		# Default operator symbol is ?
 		self.arity = 2			# Default to binary operator
+
 	# Add a child to the node
 	def addChild(self, child):
 		if self.left == None:
@@ -396,6 +431,7 @@ class Operation(Node):
 			child.parent = self
 		else:
 			raise NodeException('Node already has two children.')
+
 	# Remove a child from the node
 	def removeChild(self):
 		if self.right != None:
@@ -409,6 +445,7 @@ class Operation(Node):
 		else:
 			raise NodeException('Node has no children to remove.')
 		return node
+
 	# Find somewhere in this tree to add a child node. Return false if there are no open spots
 	def addWhereOpen(self, child):
 		# Can we have another child?
@@ -571,7 +608,6 @@ class Operation(Node):
 			self.right.set(value)
 		else:
 			self.right.setVariable(name, value)
-		
 
 	# Return the value of this node
 	def evaluate(self):
@@ -708,6 +744,7 @@ class Operation(Node):
 		else:
 			return '[ ' + self.left.__str__() + ' ' + self.symbol + ' ' + self.right.__str__() + ' ]'
 
+
 # Add two nodes together
 class Plus(Operation):
 	# Initialize the node
@@ -715,12 +752,14 @@ class Plus(Operation):
 		super(Plus,self).__init__()
 		self.weight = 1
 		self.symbol = '+'
+
 	# Evaluate the node
 	def evaluate(self):
 		if self.left and self.right:
 			return self.left.evaluate() + self.right.evaluate()
 		else:
 			raise NodeException('Node does not have enough children.')
+
 
 # Subtract two nodes
 class Minus(Operation):
@@ -729,12 +768,14 @@ class Minus(Operation):
 		super(Minus,self).__init__()
 		self.weight = 1
 		self.symbol = '-'
+
 	# Evaluate the node
 	def evaluate(self):
 		if self.left and self.right:
 			return self.left.evaluate() - self.right.evaluate()
 		else:
 			raise NodeException('Node does not have enough children.')
+
 
 # Multiply two nodes
 class Times(Operation):
@@ -743,12 +784,14 @@ class Times(Operation):
 		super(Times,self).__init__()
 		self.weight = 2
 		self.symbol = '*'
+
 	# Evaluate the node
 	def evaluate(self):
 		if self.left and self.right:
 			return self.left.evaluate() * self.right.evaluate()
 		else:
 			raise NodeException('Node does not have enough children.')
+
 	# Try to factor the node
 	def factor(self):
 		# Factor the children first (if possibe)
@@ -822,6 +865,7 @@ class Times(Operation):
 				return new_parent
 		else:
 			return self
+
 	# Return an Infix Notation string representing the operation
 	def toInfixNotation(self):
 		lstring = self.left.toInfixNotation()
@@ -839,6 +883,7 @@ class Times(Operation):
 		else:
 			return lstring + ' * ' + rstring
 
+
 # Divide two nodes
 class Divide(Operation):
 	# Initialize the node
@@ -846,12 +891,14 @@ class Divide(Operation):
 		super(Divide,self).__init__()
 		self.weight = 2
 		self.symbol = '/'
+
 	# Evaluate the node
 	def evaluate(self):
 		if self.left and self.right:
 			return self.left.evaluate() / self.right.evaluate()
 		else:
 			raise NodeException('Node does not have enough children.')
+
 	# Try to factor the node
 	def factor(self):
 		# Factor the children first (if possibe)
@@ -926,6 +973,7 @@ class Divide(Operation):
 		else:
 			return self
 
+
 # Exponentiate two nodes
 class Exponent(Operation):
 	# Initialize the node
@@ -933,6 +981,7 @@ class Exponent(Operation):
 		super(Exponent,self).__init__()
 		self.weight = 3
 		self.symbol = '^'
+
 	# Evaluate the node
 	def evaluate(self):
 		if self.left and self.right:
@@ -950,12 +999,13 @@ class Exponent(Operation):
 		else:
 			raise NodeException('Node does not have enough children.')
 
+
 # Calculate the factorial of a node
 # ** This is an unary operator **
 class Factorial(Operation):
 	# Initialize the node
 	def __init__(self):
-		super(Factorial,self).__init__()
+		super(Factorial, self).__init__()
 		self.weight = 4
 		self.symbol = '!'
 		self.arity = 1
@@ -990,6 +1040,7 @@ class Factorial(Operation):
 		else:
 			raise NodeException('Node does not have enough children.')
 
+
 # Return an object of the correct type given the symbol representing an operation
 def getOperation(operation_symbol):
 	if operation_symbol == '+':
@@ -1006,4 +1057,3 @@ def getOperation(operation_symbol):
 		return Factorial()
 	else:
 		raise ParseException('Unknown operation "' + operation_symbol + '"')
-
