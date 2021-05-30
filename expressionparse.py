@@ -638,6 +638,8 @@ class Operation(Node):
 				string += '(' + rstring + ')'
 			else:
 				string += rstring
+		else:
+			raise ValueError('Operators with arity other than 1 or 2 cannot be converted to infix notation')
 
 		return string
 
