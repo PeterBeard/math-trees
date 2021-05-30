@@ -650,7 +650,7 @@ class Operation(Node):
 				string += '(' + lstring + ')'
 			else:
 				# Pull off the operator if the left child has the same type
-				if type(self) == type(self.left):
+				if isinstance(self, type(self.left)):
 					string += lstring[2:]
 				else:
 					string += lstring
@@ -662,7 +662,7 @@ class Operation(Node):
 				string += '(' + lstring + ')'
 			else:
 				# Pull off the operator if the left child has the same type
-				if type(self) == type(self.left):
+				if isinstance(self, type(self.left)):
 					string += lstring[2:]
 				else:
 					string += lstring
@@ -671,7 +671,7 @@ class Operation(Node):
 				string += '(' + rstring + ')'
 			else:
 				# Pull off the operator if the right child has the same type
-				if type(self) == type(self.right):
+				if isinstance(self, type(self.right)):
 					string += rstring[2:]
 				else:
 					string += rstring
@@ -1012,7 +1012,7 @@ class Factorial(Operation):
 
 	# Add a child to the node
 	def addChild(self, child):
-		if self.left == None:
+		if self.left is None:
 			self.left = child
 			child.parent = self
 		else:
@@ -1020,7 +1020,7 @@ class Factorial(Operation):
 	
 	# Remove a child from the node
 	def removeChild(self):
-		if self.left != None:
+		if self.left is not None:
 			c = self.left
 			self.left = None
 			c.parent = None
@@ -1030,7 +1030,7 @@ class Factorial(Operation):
 
 	# Evaluate the node
 	def evaluate(self):
-		if self.left != None and self.right == None:
+		if self.left is not None and self.right is None:
 			cvalue = self.left.evaluate()
 			# Right now factorial is only defined for the natural numbers
 			if cvalue >= 0 and cvalue == int(cvalue):
