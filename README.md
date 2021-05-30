@@ -6,7 +6,7 @@ Use Python to create and evaluate parse trees for simple algebraic expressions.
 Prerequisites
 =============
 
-This software requires Python 2.7.
+This software works in both Python 2.7 and Python 3.
 
 Usage
 =====
