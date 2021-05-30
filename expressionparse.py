@@ -174,10 +174,12 @@ class Tokenizer(object):
 
 
 # A class representing an expression tree. Contains logic for parsing strings.
-# TODO: This class is probably not that different from the Node class, so they should probably be merged or this class should at least be simplified.
+# TODO: This class is probably not that different from the Node class, so they
+# 	    should probably be merged or this class should at least be simplified.
 class Tree(Node):
 	# Initialize the tree
 	def __init__(self):
+		super(Tree, self).__init__()
 		self.root = None
 
 	# Parse a string expression
@@ -270,7 +272,7 @@ class Tree(Node):
 			self.root = subtree_root.left
 		else:
 			self.root = subtree_root
-	
+
 	# Set the value of a variable in the tree
 	def setVariable(self, name, value):
 		if isinstance(self.root, Operation):
@@ -310,7 +312,7 @@ class Tree(Node):
 	# Make a string representation of the tree
 	def __str__(self):
 		return self.root.__str__()
-	
+
 	# Get the length of the tree
 	def __len__(self):
 		return len(self.root)
@@ -326,6 +328,7 @@ class Tree(Node):
 class Value(Node):
 	# Initialize the node
 	def __init__(self, val=''):
+		super(Value, self).__init__()
 		self.value = str(val)
 
 	# Append a digit to the value
@@ -359,6 +362,7 @@ class Value(Node):
 class Variable(Node):
 	# Initialize the node
 	def __init__(self, name=''):
+		super(Variable, self).__init__()
 		self.name = str(name)
 		self.value = Value()
 
@@ -414,6 +418,7 @@ class Variable(Node):
 class Operation(Node):
 	# Initialize the operation
 	def __init__(self):
+		super(Operation, self).__init__()
 		self.left = None		# Initialize left child to none
 		self.right = None		# Initialize right child to none
 		self.parent = None		# Initialize parent to none
@@ -423,10 +428,10 @@ class Operation(Node):
 
 	# Add a child to the node
 	def addChild(self, child):
-		if self.left == None:
+		if self.left is None:
 			self.left = child
 			child.parent = self
-		elif self.right == None:
+		elif self.right is None:
 			self.right = child
 			child.parent = self
 		else:
@@ -434,11 +439,11 @@ class Operation(Node):
 
 	# Remove a child from the node
 	def removeChild(self):
-		if self.right != None:
+		if self.right is not None:
 			node = self.right
 			self.right = None
 			node.parent = None
-		elif self.left != None:
+		elif self.left is not None:
 			node = self.left
 			self.left = None
 			node.parent = None
@@ -567,7 +572,7 @@ class Operation(Node):
 			lvalue = self.left.simplify()
 			self.left = lvalue
 		except EvalException:
-			simplified = False	
+			simplified = False
 
 		try:
 			rvalue = self.right.simplify()
@@ -588,7 +593,7 @@ class Operation(Node):
 		elif not isinstance(self.left, Value):
 			return self.left.containsVariable(varname)
 		# Is the variable in the right child?
-		if isinstance(self.right ,Variable) and self.right.name == varname:
+		if isinstance(self.right, Variable) and self.right.name == varname:
 			return True
 		elif not isinstance(self.right, Value):
 			return self.right.containsVariable(varname)
@@ -612,7 +617,7 @@ class Operation(Node):
 	# Return the value of this node
 	def evaluate(self):
 		return None
-			
+
 	# Return an Infix Notation string representing the operation
 	def toInfixNotation(self):
 		# Unary operators
@@ -677,7 +682,7 @@ class Operation(Node):
 					string += rstring[2:]
 				else:
 					string += rstring
-		
+
 		return string
 
 	# Return a Reverse Polish Notation string of the operation
@@ -714,7 +719,7 @@ class Operation(Node):
 					string += rstring[:-2]
 				else:
 					string += rstring
-			
+
 			string += ' ' + self.symbol
 
 		return string
@@ -872,7 +877,7 @@ class Times(Operation):
 	def toInfixNotation(self):
 		lstring = self.left.toInfixNotation()
 		rstring = self.right.toInfixNotation()
-		
+
 		if isinstance(self.left, Operation) and self.weight > self.left.weight:
 			lstring = '(' + lstring + ')'
 
@@ -1019,7 +1024,7 @@ class Factorial(Operation):
 			child.parent = self
 		else:
 			raise NodeException('Node already has one child.')
-	
+
 	# Remove a child from the node
 	def removeChild(self):
 		if self.left is not None:
