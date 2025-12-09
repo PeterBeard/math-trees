@@ -1,6 +1,6 @@
 # Expressionparse v0.2 -- Create syntax trees for mathematical expressions
 #
-# Copyright (C) 2021, Peter Beard <peter.b.beard@gmail.com>
+# Copyright (C) 2025, Peter Beard <peter.b.beard@gmail.com>
 # 
 # This file is part of Expressionparse.
 # 
