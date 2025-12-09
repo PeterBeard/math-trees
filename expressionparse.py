@@ -1041,7 +1041,7 @@ class Factorial(Operation):
             cvalue = self.left.evaluate()
             # Right now factorial is only defined for the natural numbers
             if cvalue >= 0 and cvalue == int(cvalue):
-                return math.factorial(cvalue)
+                return math.factorial(int(cvalue))
             else:
                 raise EvalException('Cannot compute the factorial of negative numbers or non-integers.')
         else:
