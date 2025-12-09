@@ -112,17 +112,17 @@ class Tokenizer(object):
         if level != 0:
             raise TokenizeException('Unmatched parenthesis.')
         # Make variable multiplications written as adjacent characters (e.g. 3x, xy) explicit
-        p = re.compile('(\d+)(\w)')
+        p = re.compile(r'(\d+)(\w)')
         string = p.sub(r'\1*\2',string)
-        p = re.compile('(\w)(\d+)')
+        p = re.compile(r'(\w)(\d+)')
         string = p.sub(r'\1*\2',string)
-        p = re.compile('(\w)(?=\w)')
+        p = re.compile(r'(\w)(?=\w)')
         string = p.sub(r'\1*',string)
         # Multiplication of parenthetical expression can also be written implicitly as 'x(...)' or '(...)x'
         # Make these explicit here
-        p = re.compile('([\w\d]+)\(')
+        p = re.compile(r'([\w\d]+)\(')
         string = p.sub(r'\1*(',string)
-        p = re.compile('\)([\w\d]+)')
+        p = re.compile(r'\)([\w\d]+)')
         string = p.sub(r')*\1',string)
         # The characters that we recognize
         numbers = '01234567890.'
