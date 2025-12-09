@@ -34,15 +34,15 @@ Once an expression has been parsed, various output options are available (all re
 
 ```python
     >>> t = expressionparse.Tree('2*2+1')
-    >>> print t.toPolishNotation()
+    >>> print(t.toPolishNotation())
     
     + * 2 2 1
     
-    >>> print t.toInfixNotation()
+    >>> print(t.toInfixNotation())
     
     2 * 2 + 1
     
-    >>> print t.toReversePolishNotation()
+    >>> print(t.toReversePolishNotation())
     
     2 2 * 1 +
 ```
@@ -51,7 +51,7 @@ Trees and nodes can also be stringified using the str() operator. This will outp
 
 ```python
     >>> t = expressionparse.Tree('2*2+1')
-    >>> print t
+    >>> print(t)
     
     [ [ 2 * 2 ] + 1 ]
 ```
@@ -63,7 +63,7 @@ Expressions containing only numbers can be evaluated using the Tree.evaluate met
 
 ```python
     >>> t = expressionparse.Tree('1+2')
-    >>> print t.evaluate()
+    >>> print(t.evaluate())
     
     3.0
 ```
@@ -78,7 +78,7 @@ Expressions containing variables cannot be evaluated unless the values of all va
 ```python
     >>> t = expressionparse.Tree('x+2')
     >>> t.setVariable('x',1)
-    >>> print t.evaluate()
+    >>> print(t.evaluate())
     
     3.0
 ```
