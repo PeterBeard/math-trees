@@ -82,3 +82,12 @@ Expressions containing variables cannot be evaluated unless the values of all va
     
     3.0
 ```
+
+Testing
+=======
+
+You can run the entire test suite with
+
+```bash
+    >>> python -m unittest discover -s tests
+```
