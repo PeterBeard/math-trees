@@ -19,8 +19,7 @@ To parse an expression, create a new Tree object and use its parse() method:
     
     expression = 'x+y'
 
-    t = expressionparse.Tree()
-    t.parse(expression)
+    t = expressionparse.Tree(expression)
 
 The software is currently only capable of parsing expressions written using infix notation and containing only the +,-,*,/,^, and ! operations.
 
@@ -34,8 +33,7 @@ Once an expression has been parsed, various output options are available (all re
 * Reverse Polish Notation (`Tree.toReversePolishNotation`)
 
 ```python
-    >>> t = expressionparse.Tree()
-    >>> t.parse('2*2+1')
+    >>> t = expressionparse.Tree('2*2+1')
     >>> print t.toPolishNotation()
     
     + * 2 2 1
@@ -52,8 +50,7 @@ Once an expression has been parsed, various output options are available (all re
 Trees and nodes can also be stringified using the str() operator. This will output using infix notation but with explicit delineation of the various nodes using square brackets.
 
 ```python
-    >>> t = expressionparse.Tree()
-    >>> t.parse('2*2+1')
+    >>> t = expressionparse.Tree('2*2+1')
     >>> print t
     
     [ [ 2 * 2 ] + 1 ]
@@ -65,8 +62,7 @@ Evaluating Expressions
 Expressions containing only numbers can be evaluated using the Tree.evaluate method. If an error is encountered during evaluation, an EvalException will be raised.
 
 ```python
-    >>> t = expressionparse.Tree()
-    >>> t.parse('1+2')
+    >>> t = expressionparse.Tree('1+2')
     >>> print t.evaluate()
     
     3.0
@@ -80,8 +76,7 @@ The math-trees library can parse expressions containing variables with single-ch
 Expressions containing variables cannot be evaluated unless the values of all variables have been set using the Tree.setVariable method.
 
 ```python
-    >>> t = expressionparse.Tree()
-    >>> t.parse('x+2')
+    >>> t = expressionparse.Tree('x+2')
     >>> t.setVariable('x',1)
     >>> print t.evaluate()
     
