@@ -756,7 +756,7 @@ class Operation(Node):
 class Plus(Operation):
     # Initialize the node
     def __init__(self):
-        super(Plus,self).__init__()
+        super(Plus, self).__init__()
         self.weight = 1
         self.symbol = '+'
 
@@ -772,7 +772,7 @@ class Plus(Operation):
 class Minus(Operation):
     # Initialize the node
     def __init__(self):
-        super(Minus,self).__init__()
+        super(Minus, self).__init__()
         self.weight = 1
         self.symbol = '-'
 
@@ -788,7 +788,7 @@ class Minus(Operation):
 class Times(Operation):
     # Initialize the node
     def __init__(self):
-        super(Times,self).__init__()
+        super(Times, self).__init__()
         self.weight = 2
         self.symbol = '*'
 
@@ -895,7 +895,7 @@ class Times(Operation):
 class Divide(Operation):
     # Initialize the node
     def __init__(self):
-        super(Divide,self).__init__()
+        super(Divide, self).__init__()
         self.weight = 2
         self.symbol = '/'
 
@@ -985,7 +985,7 @@ class Divide(Operation):
 class Exponent(Operation):
     # Initialize the node
     def __init__(self):
-        super(Exponent,self).__init__()
+        super(Exponent, self).__init__()
         self.weight = 3
         self.symbol = '^'
 
