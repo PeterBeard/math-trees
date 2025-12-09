@@ -177,10 +177,12 @@ class Tokenizer(object):
 # TODO: This class is probably not that different from the Node class, so they
 # 	    should probably be merged or this class should at least be simplified.
 class Tree(Node):
-    # Initialize the tree
-    def __init__(self):
+    # Initialize the tree, optionally with an infix expression to parse
+    def __init__(self, expression=None):
         super(Tree, self).__init__()
         self.root = None
+        if expression:
+            self.parse(expression)
 
     # Parse a string expression
     def parse(self, expression):
