@@ -654,77 +654,23 @@ class Operation(Node):
     def toPolishNotation(self):
         if self.arity == 1:
             lstring = self.left.toPolishNotation()
-            string = self.symbol + ' '
-            if isinstance(self.left, Operation) and self.weight > self.left.weight:
-                string += '(' + lstring + ')'
-            else:
-                # Pull off the operator if the left child has the same type
-                if isinstance(self, type(self.left)):
-                    string += lstring[2:]
-                else:
-                    string += lstring
+            return f"{self.symbol} {lstring}"
         else:
+            assert self.arity == 2
             lstring = self.left.toPolishNotation()
             rstring = self.right.toPolishNotation()
-            string = self.symbol + ' '
-            if isinstance(self.left, Operation) and self.weight > self.left.weight:
-                string += '(' + lstring + ')'
-            else:
-                # Pull off the operator if the left child has the same type
-                if isinstance(self, type(self.left)):
-                    string += lstring[2:]
-                else:
-                    string += lstring
-            string += ' '
-            if isinstance(self.right, Operation) and self.weight > self.right.weight:
-                string += '(' + rstring + ')'
-            else:
-                # Pull off the operator if the right child has the same type
-                if isinstance(self, type(self.right)):
-                    string += rstring[2:]
-                else:
-                    string += rstring
-
-        return string
+            return f"{self.symbol} {lstring} {rstring}"
 
     # Return a Reverse Polish Notation string of the operation
     def toReversePolishNotation(self):
         if self.arity == 1:
             lstring = self.left.toReversePolishNotation()
-            if isinstance(self.left, Operation) and self.weight > self.left.weight:
-                string = '(' + lstring + ')'
-            else:
-                # Pull off the operator if the left child has the same type
-                if type(self) == type(self.left):
-                    string = lstring[:-2]
-                else:
-                    string = lstring
-            string += ' ' + self.symbol
+            return f"{lstring} {self.symbol}"
         else:
+            assert self.arity == 2
             lstring = self.left.toReversePolishNotation()
             rstring = self.right.toReversePolishNotation()
-            string = ''
-            if isinstance(self.left, Operation) and self.weight > self.left.weight:
-                string += '(' + lstring + ')'
-            else:
-                # Pull off the operator if the left child has the same type
-                if type(self) == type(self.left):
-                    string += lstring[:-2]
-                else:
-                    string += lstring
-            string += ' '
-            if isinstance(self.right, Operation) and self.weight > self.right.weight:
-                string += '(' + rstring + ')'
-            else:
-                # Pull off the operator if the right child has the same type
-                if type(self) == type(self.right):
-                    string += rstring[:-2]
-                else:
-                    string += rstring
-
-            string += ' ' + self.symbol
-
-        return string
+            return f"{lstring} {rstring} {self.symbol}"
 
     # See if two operation nodes are equal
     def __eq__(self, other):
