@@ -102,7 +102,7 @@ class Tokenizer(object):
         string = string.replace(' ','')
         # Next replace adjacent parentheses with explicit multiplications so we can parse more easily
         string = string.replace(')(',')*(')
-        # Check for unmatches parentheses
+        # Check for unmatched parentheses
         level = 0
         for char in string:
             if char == '(':
@@ -112,17 +112,17 @@ class Tokenizer(object):
         if level != 0:
             raise TokenizeException('Unmatched parenthesis.')
         # Make variable multiplications written as adjacent characters (e.g. 3x, xy) explicit
-        p = re.compile(r'(\d+)(\w)')
+        p = re.compile(r'(\d+)([a-zA-Z])')
         string = p.sub(r'\1*\2',string)
-        p = re.compile(r'(\w)(\d+)')
+        p = re.compile(r'([a-zA-Z])(\d+)')
         string = p.sub(r'\1*\2',string)
-        p = re.compile(r'(\w)(?=\w)')
+        p = re.compile(r'([a-zA-Z])(?=[a-zA-Z])')
         string = p.sub(r'\1*',string)
         # Multiplication of parenthetical expression can also be written implicitly as 'x(...)' or '(...)x'
         # Make these explicit here
-        p = re.compile(r'([\w\d]+)\(')
+        p = re.compile(r'(\w+)\(')
         string = p.sub(r'\1*(',string)
-        p = re.compile(r'\)([\w\d]+)')
+        p = re.compile(r'\)(\w+)')
         string = p.sub(r')*\1',string)
         # The characters that we recognize
         numbers = '01234567890.'
