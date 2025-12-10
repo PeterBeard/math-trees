@@ -138,7 +138,12 @@ class Tokenizer(object):
                     self.pushToken(curr_value)
                     curr_value = Value()
                 self.pushToken(char)
-            elif char in numbers or (char == '-' and string[i+1] in numbers and len(curr_value) == 0 and string[i-1] != Tokenizer.CLOSEPAREN):
+            elif char in numbers or (
+                    char == '-'
+                    and string[i+1] in numbers
+                    and len(curr_value) == 0
+                    and not (len(self.tokens) > 0 and isinstance(self.tokens[-1], Variable))
+                    and string[i-1] != Tokenizer.CLOSEPAREN):
                 curr_value.append(char)
                 # Last value in the string
                 if i == len(string)-1:
@@ -353,11 +358,17 @@ class Value(Node):
     def __eq__(self, other):
         if isinstance(other, Value):
             return self.value == other.value
+        elif self.value != '':
+            return float(self.value) == other
         return False
 
     # Return a string representation of the value
     def __str__(self):
         return self.value
+
+    # Return a representation of the value
+    def __repr__(self):
+        return f"{self.__class__}({self.value})"
 
 
 # Class representing a variable, e.g. x
@@ -392,14 +403,8 @@ class Variable(Node):
 
     # Compare two variables
     def __eq__(self, other):
-        if type(other) == type(self):
-            if self.name == other.name:
-                if self.value == other.value:
-                    return True
-                else:
-                    return False
-            else:
-                return False
+        if isinstance(other, Variable):
+            return self.name == other.name and self.value == other.value
         else:
             return False
 
@@ -414,6 +419,10 @@ class Variable(Node):
             return '{' + self.name + '=' + str(self.value) + '}'
         except:
             return self.name
+
+    # Return a representation of the variable
+    def __repr__(self):
+        return f"{self.__class__}({self.name}, {repr(self.value)})"
 
 
 # A class representing a mathematical operation, e.g. plus, minus, etc.
@@ -695,9 +704,13 @@ class Operation(Node):
         # Unary operators
         if self.arity == 1:
             return '[ ' + self.left.__str__() + ' ' + self.symbol + ' ]'
-        # Binary operatorys
+        # Binary operators
         else:
             return '[ ' + self.left.__str__() + ' ' + self.symbol + ' ' + self.right.__str__() + ' ]'
+
+    # Return a representation of the node
+    def __repr__(self):
+        return f"{self.__class__}({self.left}, {self.right}, {self.symbol})"
 
 
 # Add two nodes together
