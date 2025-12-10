@@ -287,19 +287,6 @@ class Tree(Node):
         elif isinstance(self.root, Variable) and self.root.name == name:
             self.root.set(value)
 
-    # Try to simplify the tree
-    def simplify(self):
-        try:
-            self.root.simplify()
-        except EvalException:
-            return False
-        # Try to evaluate the simplified root node
-        try:
-            self.root = self.root.evaluate()
-            return True
-        except EvalException:
-            return False
-
     # Evaluate the entire tree
     def evaluate(self):
         return self.root.evaluate()
@@ -342,10 +329,6 @@ class Value(Node):
     def append(self, digit):
         self.value = self.value + str(digit)
 
-    # Simplify the node
-    def simplify(self):
-        return self
-
     # Evaluate the node
     def evaluate(self):
         return float(self.value)
@@ -378,10 +361,6 @@ class Variable(Node):
         super(Variable, self).__init__()
         self.name = str(name)
         self.value = Value()
-
-    # Simplify the node
-    def simplify(self):
-        return self
 
     # Evaluate the node
     def evaluate(self):
@@ -573,26 +552,6 @@ class Operation(Node):
                 new_parent.addChild(common_factor)
             # Return the re-factored node
             return new_parent
-        else:
-            return self
-
-    # Simplify the node
-    def simplify(self):
-        simplified = True
-        try:
-            lvalue = self.left.simplify()
-            self.left = lvalue
-        except EvalException:
-            simplified = False
-
-        try:
-            rvalue = self.right.simplify()
-            self.right = rvalue
-        except EvalException:
-            simplified = False
-
-        if simplified:
-            return Value(self.evaluate())
         else:
             return self
 
@@ -1025,3 +984,34 @@ def getOperation(operation_symbol):
         return Factorial()
     else:
         raise ParseException('Unknown operation "' + operation_symbol + '"')
+
+
+
+# Simplify a node into the smallest possible tree by evaluating as much of it as possible
+def simplify(node):
+    if not node or not isinstance(node, Node):
+        # Null nodes, numbers, etc. can't be simplified
+        return node
+    try:
+        # The easiest way to simplify a node is to just evaluate it
+        return node.evaluate()
+    except EvalException:
+        # If we can't evaluate the root node, maybe it has children we can evaluate
+        if isinstance(node, Operation):
+            if node.left:
+                lvalue = simplify(node.left)
+            else:
+                lvalue = node.left
+            if node.right:
+                rvalue = simplify(node.right)
+            else:
+                rvalue = node.right
+
+            new_node = type(node)()
+            new_node.left = lvalue
+            new_node.right = rvalue
+
+            return new_node
+        else:
+            # This node can't be simplified
+            return node
